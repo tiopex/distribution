@@ -1,0 +1,11 @@
+diff --git a/ucm2/conf.d/sm8550/ayn-AYNThor-.conf b/ucm2/conf.d/sm8550/ayn-AYNThor-.conf
+new file mode 120000
+index 0000000..414976a
+--- /dev/null
++++ b/ucm2/conf.d/sm8550/ayn-AYNThor-.conf
+@@ -0,0 +1 @@
++../../AYN/Thor/AYN-Thor.conf
+\ No newline at end of file
+-- 
+2.34.1
+
