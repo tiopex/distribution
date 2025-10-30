@@ -35,7 +35,8 @@ PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT_TRANSLATION=OFF \
                          -DENABLE_ROOM=OFF \
                          -DUSE_DISCORD_PRESENCE=OFF \
                          -DENABLE_OPENGL=ON \
-                         -DENABLE_VULKAN=ON"
+                         -DENABLE_VULKAN=ON" \
+                         -DCITRA_USE_PRECOMPILED_HEADERS=OFF
 
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/bin
