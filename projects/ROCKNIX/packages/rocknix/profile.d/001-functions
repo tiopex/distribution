@@ -20,6 +20,25 @@ function log() {
   echo "$(date) ${SOURCE}: ${MESSAGE}" >>/var/log/messages
 }
 
+function set_kill() {
+  if [ "${1}" = "set" ]
+  then
+    cat <<EOF >/tmp/.process-kill-data
+${2}
+EOF
+  elif [ "${1}" = "stop" ]
+  then
+    if [ -e "/tmp/.process-kill-data" ]
+    then
+      rm -f "/tmp/.process-kill-data"
+    fi
+  fi
+}
+
+function battery_percent() {
+  awk 'BEGIN {FS="="} /POWER_SUPPLY_CAPACITY=/ {print $2}' /sys/class/power_supply/[Bb][Aa][Tt]*/uevent 2>/dev/null
+}
+
 function fbwidth() {
   local ORIENTATION=$(</sys/devices/virtual/graphics/fbcon/rotate)
   if [ "${ORIENTATION}" = "0" ]
@@ -38,6 +57,10 @@ function fbheight() {
   else
     fbset | awk '/geometry/ {print $2}'
   fi
+}
+
+function cpu_vendor() {
+  awk '/vendor_id/ {print $3;exit}' /proc/cpuinfo
 }
 
 # sway window manager utility function to enable fullscreen on a window for an input app_id
