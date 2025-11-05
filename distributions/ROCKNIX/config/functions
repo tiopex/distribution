@@ -212,8 +212,8 @@ EOF
   add_system_doc ${SYSTEM_NAME}
 }
 
-# dtb.xml parsing
-DTBXML="${PROJECT_DIR}/${PROJECT}/bootloader/dtb.xml"
+# config.xml parsing
+CONFIGXML="${PROJECT_DIR}/${PROJECT}/config.xml"
 
 SUBDEVICES=$(xmlstarlet sel -t -m "//rocknix/${DEVICE}/*[@mkimage_options]" -v "name()" -n "${DTBXML}" 2>/dev/null | tr '\n' ' ')
 
