@@ -1,7 +1,7 @@
 new file mode 100644
 --- /dev/null
-+++ b/arch/arm64/boot/dts/rockchip/rk3326-gameconsole-r36max.dts
-@@ -0,0 +1,884 @@
++++ b/arch/arm64/boot/dts/rockchip/rk3326-gameconsole-eeclone.dts
+@@ -0,0 +1,926 @@
 +/// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright (c) 2024-present ROCKNIX (https://github.com/ROCKNIX)
@@ -16,15 +16,15 @@ new file mode 100644
 +#include "rk3326.dtsi"
 +
 +/ {
-+    model = "K36 family clone";
-+    compatible = "gameconsole,r36max", "rockchip,rk3326";
++    model = "Generic EE clone";
++    compatible = "gameconsole,eeclone", "rockchip,rk3326";
 +
 +    aliases {
 +        mmc0 = &emmc;
 +        mmc1 = &sdmmc;
 +        mmc2 = &sdio;
 +        serial1 = &uart2;
-+        serial2 = &uart1;
++        serial2 = &uart5;
 +    };
 +
 +    backlight: backlight {
@@ -92,6 +92,9 @@ new file mode 100644
 +        io-channel-names = "buttons";
 +        keyup-threshold-microvolt = <1800000>;
 +        poll-interval = <100>;
++
++        /* disabled by default, dtbo may enable it when needed */
++        status = "disabled";
 +
 +        button-vol-up {
 +            press-threshold-microvolt = <15000>;
@@ -266,6 +269,30 @@ new file mode 100644
 +        };
 +    };
 +
++    leds: gpio-leds {
++        compatible = "gpio-leds";
++        pinctrl-0 = <&led_pins>;
++        pinctrl-names = "default";
++
++        /* charge_red_gpio = <&gpio0 17 0>; */
++        led-0 {
++                color = <LED_COLOR_ID_RED>;
++                default-state = "off";
++                function = LED_FUNCTION_CHARGING;
++                linux,default-trigger = "battery-charging-blink-full-solid";
++                gpios = <&gpio0 RK_PC1 GPIO_ACTIVE_HIGH>;
++        };
++
++        /* charge_blue_gpio = <&gpio0 0 0>; */
++        led-1 {
++                color = <LED_COLOR_ID_BLUE>;
++                default-state = "on";
++                function = LED_FUNCTION_POWER;
++                linux,default-trigger = "default-on";
++                gpios = <&gpio0 RK_PA0 GPIO_ACTIVE_HIGH>;
++        };
++    };
++
 +	spk_amp: audio-amplifier {
 +		compatible = "simple-audio-amplifier";
 +		enable-gpios = <&gpio3 RK_PA7 GPIO_ACTIVE_HIGH>;
@@ -304,10 +331,11 @@ new file mode 100644
 +
 +	vccsys: vccsys {
 +		compatible = "regulator-fixed";
-+		regulator-name = "vcc3v8_sys";
++		regulator-name = "vcc5v0_sys";
 +		regulator-always-on;
-+		regulator-min-microvolt = <3800000>;
-+		regulator-max-microvolt = <3800000>;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
 +	};
 +
 +	vcc-phy-regulator {
@@ -331,19 +359,19 @@ new file mode 100644
 +		};
 +	};
 +
-+    vcc_host: vcc_host {
-+        compatible = "regulator-fixed";
-+        regulator-name = "vcc_host";
-+        regulator-min-microvolt = <5000000>;
-+        regulator-max-microvolt = <5000000>;
-+        gpio = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
++	vcc_host: vcc_host {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc_host";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		gpio = <&gpio3 RK_PA4 GPIO_ACTIVE_HIGH>;
 +		pinctrl-0 = <&vcc5_usb>;
 +		pinctrl-names = "default";
-+        enable-active-high;
-+        regulator-always-on;
-+        regulator-boot-on;
-+        vin-supply = <&usb_midu>;
-+    };
++		enable-active-high;
++		regulator-always-on;
++		regulator-boot-on;
++		vin-supply = <&usb_midu>;
++	};
 +};
 +
 +&dmc {
@@ -451,13 +479,13 @@ new file mode 100644
 +        vcc6-supply = <&vccsys>;
 +        vcc7-supply = <&vcc_3v0>;
 +        vcc8-supply = <&vccsys>;
-+        vcc9-supply = <&usb_midu>;
 +
 +    regulators {
 +        vdd_logic: DCDC_REG1 {
 +              regulator-name = "vdd_logic";
-+              regulator-min-microvolt = <850000>;
-+              regulator-max-microvolt = <1150000>;
++              regulator-min-microvolt = <950000>;
++              regulator-max-microvolt = <1350000>;
++              regulator-initial-mode = <0x02>;
 +              regulator-ramp-delay = <6001>;
 +              regulator-always-on;
 +              regulator-boot-on;
@@ -473,6 +501,7 @@ new file mode 100644
 +              regulator-min-microvolt = <850000>;
 +              regulator-max-microvolt = <1350000>;
 +              regulator-ramp-delay = <6001>;
++              regulator-initial-mode = <0x02>;
 +              regulator-always-on;
 +              regulator-boot-on;
 +
@@ -486,6 +515,7 @@ new file mode 100644
 +              regulator-name = "vcc_ddr";
 +              regulator-always-on;
 +              regulator-boot-on;
++              regulator-initial-mode = <0x02>;
 +
 +              regulator-state-mem {
 +                  regulator-on-in-suspend;
@@ -496,6 +526,7 @@ new file mode 100644
 +              regulator-name = "vcc_3v0";
 +              regulator-min-microvolt = <3000000>;
 +              regulator-max-microvolt = <3000000>;
++              regulator-initial-mode = <0x02>;
 +              regulator-always-on;
 +              regulator-boot-on;
 +
@@ -573,24 +604,24 @@ new file mode 100644
 +        vcc_sd: LDO_REG6 {
 +              regulator-name = "vcc_sd";
 +              regulator-min-microvolt = <1800000>;
-+              regulator-max-microvolt = <3000000>;
-+              regulator-always-on;
-+              regulator-boot-on;
++              regulator-max-microvolt = <3300000>;
 +
 +              regulator-state-mem {
 +                  regulator-on-in-suspend;
-+                  regulator-suspend-microvolt = <3000000>;
++                  regulator-suspend-microvolt = <3300000>;
 +              };
 +        };
 +
 +        vcc2v8_dvp: LDO_REG7 {
 +              regulator-name = "vcc2v8_dvp";
-+              regulator-min-microvolt = <2800000>;
-+              regulator-max-microvolt = <2800000>;
++              regulator-min-microvolt = <1800000>;
++              regulator-max-microvolt = <3300000>;
++              regulator-always-on;
++              regulator-boot-on;
 +
 +              regulator-state-mem {
 +              regulator-off-in-suspend;
-+                  regulator-suspend-microvolt = <2800000>;
++                  regulator-suspend-microvolt = <3300000>;
 +              };
 +        };
 +
@@ -611,6 +642,8 @@ new file mode 100644
 +              regulator-min-microvolt = <1500000>;
 +              regulator-max-microvolt = <1500000>;
 +              regulator-name = "vdd1v5_dvp";
++              regulator-always-on;
++              regulator-boot-on;
 +
 +              regulator-state-mem {
 +                  regulator-off-in-suspend;
@@ -620,12 +653,13 @@ new file mode 100644
 +
 +        usb_midu: BOOST {
 +              regulator-name = "usb_midu";
-+              regulator-min-microvolt = <4700000>;
++              regulator-min-microvolt = <4900000>;
 +              regulator-max-microvolt = <5400000>;
 +              regulator-always-on;
 +              regulator-boot-on;
 +        };
 +
++        /*
 +        otg_switch: OTG_SWITCH {
 +            regulator-name = "otg_switch";
 +
@@ -633,6 +667,7 @@ new file mode 100644
 +                regulator-off-in-suspend;
 +            };
 +        };
++        */
 +    };
 +
 +    rk817_charger: charger {
@@ -740,7 +775,7 @@ new file mode 100644
 +    };
 +
 +    u2phy_otg: otg-port {
-+        status = "okay";
++        status = "disabled";
 +    };
 +};
 +
@@ -799,8 +834,15 @@ new file mode 100644
 +
 +    vcc5-usb {
 +        vcc5_usb: vcc5-usb {
-+            rockchip,pins = <0x03 0x04 0x00 0x9f>;
-+            phandle = <0xb2>;
++            rockchip,pins = <3 RK_PA4 RK_FUNC_GPIO &pcfg_pull_none>;
++        };
++    };
++
++    gpio-led {
++        led_pins: led-pins {
++            rockchip,pins =
++                <0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>, /* charge_blue_gpio = <&gpio0 0 0>; */
++                <0 RK_PC1 RK_FUNC_GPIO &pcfg_pull_none>; /* charge_red_gpio = <&gpio0 17 0>; */
 +        };
 +    };
 +
@@ -833,7 +875,7 @@ new file mode 100644
 +    };
 +};
 +
-+&uart1 {
++&uart5 {
 +    status = "okay";
 +};
 +&uart2 {
