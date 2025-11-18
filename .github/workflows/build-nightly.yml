@@ -18,7 +18,7 @@ jobs:
   set-envs:
     if: (github.event_name != 'schedule') || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')
     environment:
-      name: ${{ github.event_name == 'pull_request' && 'pr-approval' || 'auto' }}
+      name: ${{ github.event_name == 'pull_request_target' && 'pr-approval' || 'auto' }}
     runs-on: ubuntu-24.04
     outputs:
       NIGHTLY: ${{ github.event_name == 'workflow_dispatch' && inputs.release == true && 'no' || 'yes' }}
