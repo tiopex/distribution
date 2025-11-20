@@ -352,7 +352,7 @@ and keyboard to modify settings.</desc>
     <game>
         <path>./GPcal.sh</path>
         <name>Calibrate Gamepad</name>
-        <desc>A gamepad tool that enables the user to calibrate the analog sticks and triggers on the Retroid Pocket 5 & Mini.</desc>
+        <desc>A gamepad tool that enables the user to calibrate the analog sticks and triggers on the Retroid Pocket 5 and Mini.</desc>
         <developer>CDELETRE</developer>
         <publisher>ROCKNIX</publisher>
         <rating>5.0</rating>
