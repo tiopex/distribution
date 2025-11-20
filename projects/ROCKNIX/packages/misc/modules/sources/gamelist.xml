@@ -99,7 +99,8 @@
     <game>
         <path>./Start AetherSX2.sh</path>
         <name>Start AetherSX2</name>
-        <desc>Opens the AetherSX2 GUI (PS2) to enable global configuration changes to be made directly to the emulator. It's recommended to have a mouse and keyboard to modify settings.</desc>
+        <desc>Opens the AetherSX2 GUI (PS2) to enable global configuration changes to be made directly to the emulator. It's recommended to have a mouse 
+and keyboard to modify settings.</desc>
         <developer>ROCKNIX</developer>
         <publisher>ROCKNIX</publisher>
         <rating>5.0</rating>
@@ -107,6 +108,18 @@
         <genre>Emulator</genre>
         <players>1</players>
         <image>./images/aethersx2.svg</image>
+    </game>
+    <game>
+        <path>./Start BigPEmu.sh</path>
+        <name>Start BigPEmu</name>
+        <desc>Opens the BigPEmu GUI (Jaguar) to enable global configuration changes to be made directly to the emulator. It's recommended to have a mouse and keyboard to modify settings.</desc>
+        <developer>ROCKNIX</developer>
+        <publisher>ROCKNIX</publisher>
+        <rating>5.0</rating>
+        <releasedate>2025</releasedate>
+        <genre>Emulator</genre>
+        <players>1</players>
+        <image>./images/bigpemu.svg</image>
     </game>
     <game>
         <path>./Start CEMU.sh</path>
@@ -155,6 +168,18 @@
         <genre>Emulator</genre>
         <players>1</players>
         <image>./images/duckstation.svg</image>
+    </game>
+    <game>
+        <path>./Start Flycast.sh</path>
+        <name>Start Flycast</name>
+        <desc>Opens the Flycast GUI (Dreamcast / Naomi / Atomiswave) to enable global configuration changes to be made directly to the emulator. It's recommended to have a mouse and keyboard to modify settings.</desc>
+        <developer>ROCKNIX</developer>
+        <publisher>ROCKNIX</publisher>
+        <rating>5.0</rating>
+        <releasedate>2025</releasedate>
+        <genre>Emulator</genre>
+        <players>1</players>
+        <image>./images/flycast.svg</image>
     </game>
     <game>
         <path>./Start HATARISA.sh</path>
@@ -215,6 +240,18 @@
         <genre>Emulator</genre>
         <players>1</players>
         <image>./images/ppsspp.svg</image>
+    </game>
+    <game>
+        <path>./Start SkyEmu.sh</path>
+        <name>Start SkyEmu</name>
+        <desc>Opens the SkyEmu GUI (GB / GBC / GBA / NDS) to enable global configuration changes to be made directly to the emulator. It's recommended to have a mouse and keyboard to modify settings.</desc>
+        <developer>ROCKNIX</developer>
+        <publisher>ROCKNIX</publisher>
+        <rating>5.0</rating>
+        <releasedate>2025</releasedate>
+        <genre>Emulator</genre>
+        <players>1</players>
+        <image>./images/skyemu.svg</image>
     </game>
     <game>
         <path>./Start 32bit Retroarch.sh</path>
