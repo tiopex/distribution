@@ -89,50 +89,42 @@ std::string find_any_ttf_font() {
 }
 
 // -------------------- UTF-8 safe filtering for unsupported glyphs --------------------
-// Returns true if font provides glyph for codepoint (only checks BMP codepoints)
 static bool font_can_render_codepoint(TTF_Font* font, uint32_t cp) {
-    // TTF_GlyphIsProvided takes Uint16; it only checks BMP range.
     if (cp <= 0xFFFF) {
         return TTF_GlyphIsProvided(font, static_cast<Uint16>(cp)) != 0;
     }
-    // For codepoints outside BMP, assume not supported by TTF_GlyphIsProvided.
-    // Safer to skip those to avoid replacement glyphs.
     return false;
 }
 
-// Decode UTF-8 and return a filtered string containing only characters the font can render.
-// This is a straightforward decoder that skips invalid sequences and unsupported codepoints.
 std::string filter_invalid_chars(const std::string& s, TTF_Font* font) {
     std::string out;
     size_t i = 0;
     while (i < s.size()) {
         unsigned char c = static_cast<unsigned char>(s[i]);
         if (c < 0x80) {
-            // ASCII
             if (font_can_render_codepoint(font, c)) out.push_back(static_cast<char>(c));
             ++i;
             continue;
         }
 
-        // multi-byte sequence
         uint32_t cp = 0;
         size_t seqLen = 0;
 
-        if ((c & 0xE0) == 0xC0) { // 2-byte
+        if ((c & 0xE0) == 0xC0) { 
             if (i + 1 >= s.size()) { ++i; continue; }
             unsigned char c1 = static_cast<unsigned char>(s[i+1]);
             if ((c1 & 0xC0) != 0x80) { ++i; continue; }
             cp = ((c & 0x1F) << 6) | (c1 & 0x3F);
             seqLen = 2;
-            if (cp < 0x80) { i += 2; continue; } // overlong
-        } else if ((c & 0xF0) == 0xE0) { // 3-byte
+            if (cp < 0x80) { i += 2; continue; }
+        } else if ((c & 0xF0) == 0xE0) { 
             if (i + 2 >= s.size()) { ++i; continue; }
             unsigned char c1 = static_cast<unsigned char>(s[i+1]);
             unsigned char c2 = static_cast<unsigned char>(s[i+2]);
             if ((c1 & 0xC0) != 0x80 || (c2 & 0xC0) != 0x80) { ++i; continue; }
             cp = ((c & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
             seqLen = 3;
-        } else if ((c & 0xF8) == 0xF0) { // 4-byte
+        } else if ((c & 0xF8) == 0xF0) { 
             if (i + 3 >= s.size()) { ++i; continue; }
             unsigned char c1 = static_cast<unsigned char>(s[i+1]);
             unsigned char c2 = static_cast<unsigned char>(s[i+2]);
@@ -140,15 +132,10 @@ std::string filter_invalid_chars(const std::string& s, TTF_Font* font) {
             if ((c1 & 0xC0) != 0x80 || (c2 & 0xC0) != 0x80 || (c3 & 0xC0) != 0x80) { ++i; continue; }
             cp = ((c & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) | (c3 & 0x3F);
             seqLen = 4;
-        } else {
-            // Invalid leading byte — skip
-            ++i;
-            continue;
-        }
+        } else { ++i; continue; }
 
         if (seqLen == 0) { ++i; continue; }
 
-        // Only include if font can render (we only check BMP via TTF_GlyphIsProvided)
         if (font_can_render_codepoint(font, cp)) {
             out.append(s.substr(i, seqLen));
         }
@@ -224,7 +211,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Using font: " << fontPath << "\n";
 
     auto cfg = load_config();
-    FileConfig fcfg = cfg[textFile]; // default scroll=0, fontSize=40
+    FileConfig fcfg = cfg[textFile];
     int fontSize = fcfg.fontSize;
 
     auto loadFont = [&](int size) -> TTF_Font* {
@@ -233,32 +220,15 @@ int main(int argc, char* argv[]) {
         return f;
     };
     TTF_Font* font = loadFont(fontSize);
-    if (!font) {
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
+    if (!font) { TTF_Quit(); SDL_Quit(); return 1; }
 
     SDL_Window* win = SDL_CreateWindow("Text Viewer",
                                        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                        0,0,
                                        SDL_WINDOW_FULLSCREEN_DESKTOP|SDL_WINDOW_BORDERLESS);
-    if (!win) {
-        std::cerr << "SDL_CreateWindow error: " << SDL_GetError() << "\n";
-        TTF_CloseFont(font);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
+    if (!win) { std::cerr << "SDL_CreateWindow error\n"; TTF_CloseFont(font); TTF_Quit(); SDL_Quit(); return 1; }
     SDL_Renderer* ren = SDL_CreateRenderer(win,-1,SDL_RENDERER_ACCELERATED);
-    if (!ren) {
-        std::cerr << "SDL_CreateRenderer error: " << SDL_GetError() << "\n";
-        SDL_DestroyWindow(win);
-        TTF_CloseFont(font);
-        TTF_Quit();
-        SDL_Quit();
-        return 1;
-    }
+    if (!ren) { SDL_DestroyWindow(win); TTF_CloseFont(font); TTF_Quit(); SDL_Quit(); return 1; }
 
     int WINDOW_W = 0, WINDOW_H = 0;
     SDL_GetWindowSize(win,&WINDOW_W,&WINDOW_H);
@@ -272,14 +242,12 @@ int main(int argc, char* argv[]) {
     SDL_GameController* pad = nullptr;
     for(int i=0;i<SDL_NumJoysticks();i++){
         if(SDL_IsGameController(i)){
-            if (SDL_IsGameController(i)) {
-                pad = SDL_GameControllerOpen(i);
-                if (pad) break;
-            }
+            pad = SDL_GameControllerOpen(i);
+            if (pad) break;
         }
     }
 
-    // Wrap and pre-render (filter invalid chars before wrapping)
+    // Wrap and pre-render
     std::vector<std::string> wrapped;
     for(auto &line: lines){
         std::string clean = filter_invalid_chars(line, font);
@@ -292,23 +260,32 @@ int main(int argc, char* argv[]) {
     bool running=true;
     SDL_Event e;
 
+    // Touch drag-only state
+    bool touchActive = false;
+    float lastTouchY = 0.0f;
+    const float TOUCH_MULTIPLIER = 1.75f;
+
+    // Help overlay
+    bool showHelp = false;
+    SDL_Color helpColor = {255,255,0,255};
+    SDL_Color boxColor = {0,0,0,200};
+
     while(running){
         while(SDL_PollEvent(&e)){
             if(e.type==SDL_QUIT) { running=false; break; }
+
+            // Controller input
             if(e.type==SDL_CONTROLLERBUTTONDOWN){
                 switch(e.cbutton.button){
                     case SDL_CONTROLLER_BUTTON_DPAD_UP: upPressed=true; break;
                     case SDL_CONTROLLER_BUTTON_DPAD_DOWN: downPressed=true; break;
                     case SDL_CONTROLLER_BUTTON_LEFTSHOULDER: l1Pressed=true; break;
                     case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: r1Pressed=true; break;
-                    case SDL_CONTROLLER_BUTTON_X: // North - increase font
+                    case SDL_CONTROLLER_BUTTON_X:
                         fontSize += 2;
                         TTF_CloseFont(font);
                         font = loadFont(fontSize);
-                        if (!font) {
-                            fontSize -= 2;
-                            font = loadFont(fontSize);
-                        }
+                        if (!font) { fontSize -= 2; font = loadFont(fontSize); }
                         wrapped.clear();
                         for(auto &line: lines){
                             std::string clean = filter_invalid_chars(line, font);
@@ -319,15 +296,12 @@ int main(int argc, char* argv[]) {
                         textures = create_textures(ren, font, wrapped, white);
                         lineHeight = TTF_FontHeight(font);
                         break;
-                    case SDL_CONTROLLER_BUTTON_Y: // West - decrease font
+                    case SDL_CONTROLLER_BUTTON_Y:
                         fontSize -= 2;
                         if(fontSize<8) fontSize=8;
                         TTF_CloseFont(font);
                         font = loadFont(fontSize);
-                        if (!font) {
-                            fontSize += 2;
-                            font = loadFont(fontSize);
-                        }
+                        if (!font) { fontSize += 2; font = loadFont(fontSize); }
                         wrapped.clear();
                         for(auto &line: lines){
                             std::string clean = filter_invalid_chars(line, font);
@@ -338,8 +312,11 @@ int main(int argc, char* argv[]) {
                         textures = create_textures(ren, font, wrapped, white);
                         lineHeight = TTF_FontHeight(font);
                         break;
-                    case SDL_CONTROLLER_BUTTON_B: // South - close
+                    case SDL_CONTROLLER_BUTTON_B:
                         running=false;
+                        break;
+                    case SDL_CONTROLLER_BUTTON_BACK: // SELECT button
+                        showHelp = !showHelp;
                         break;
                 }
             }
@@ -351,20 +328,35 @@ int main(int argc, char* argv[]) {
                     case SDL_CONTROLLER_BUTTON_RIGHTSHOULDER: r1Pressed=false; break;
                 }
             }
+
+            // Touch events
+            if(e.type == SDL_FINGERDOWN) {
+                touchActive = true;
+                lastTouchY = e.tfinger.y;
+            }
+            if(e.type == SDL_FINGERMOTION && touchActive) {
+                float y = e.tfinger.y;
+                float dy_norm = y - lastTouchY;
+                lastTouchY = y;
+                int deltaPixels = (int)(-dy_norm * WINDOW_H * TOUCH_MULTIPLIER);
+                scroll_y += deltaPixels;
+            }
+            if(e.type == SDL_FINGERUP) touchActive = false;
         }
 
-        // scrolling
+        // Controller continuous scrolling
         if(upPressed) scroll_y -= SCROLL_SPEED;
         if(downPressed) scroll_y += SCROLL_SPEED;
         if(l1Pressed) scroll_y -= SKIP_LINES*lineHeight;
         if(r1Pressed) scroll_y += SKIP_LINES*lineHeight;
 
+        // Clamp
         int total_height = (int)textures.size()*lineHeight;
-        if(total_height < WINDOW_H) total_height = WINDOW_H; // avoid negative dividing later
+        if(total_height < WINDOW_H) total_height = WINDOW_H;
         if(scroll_y < 0) scroll_y=0;
         if(scroll_y > total_height-WINDOW_H) scroll_y = total_height-WINDOW_H;
 
-        // render
+        // Render
         SDL_SetRenderDrawColor(ren,0,0,0,255);
         SDL_RenderClear(ren);
 
@@ -378,12 +370,12 @@ int main(int argc, char* argv[]) {
             offsetY += textures[i].h;
         }
 
-        // scroll bar
+        // Scroll bar
         int barWidth = 8;
         float scrollPercent = 0.0f;
         if (total_height > WINDOW_H) scrollPercent = (float)scroll_y / (float)(total_height - WINDOW_H);
-        if(scrollPercent < 0) { scrollPercent = 0; }
-        if(scrollPercent > 1) { scrollPercent = 1; }
+        if(scrollPercent < 0) scrollPercent = 0;
+        if(scrollPercent > 1) scrollPercent = 1;
         int barHeight = (int)((float)WINDOW_H * (float)WINDOW_H / (float)total_height);
         if(barHeight < 10) barHeight = 10;
         int barY = (int)(scrollPercent*(WINDOW_H - barHeight));
@@ -391,11 +383,46 @@ int main(int argc, char* argv[]) {
         SDL_SetRenderDrawColor(ren, 200,200,200,255);
         SDL_RenderFillRect(ren, &scrollbar);
 
+        // Help overlay
+        if(showHelp) {
+            int boxW = WINDOW_W / 2;
+            int boxH = WINDOW_H / 2;
+            int boxX = (WINDOW_W - boxW)/2;
+            int boxY = (WINDOW_H - boxH)/2;
+
+            SDL_Rect helpBox = {boxX, boxY, boxW, boxH};
+            SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(ren, boxColor.r, boxColor.g, boxColor.b, boxColor.a);
+            SDL_RenderFillRect(ren, &helpBox);
+
+            std::vector<std::string> helpLines = {
+                "CONTROLS:",
+                "UP/DOWN DPAD   - Scroll",
+                "L1/R1          - Skip lines",
+                "X/Y            - Increase/Decrease font",
+                "B              - Exit",
+                "SELECT         - Toggle this help",
+                "Touch Drag     - Scroll"
+            };
+
+            int ty = boxY + 20;
+            for(auto &line : helpLines){
+                SDL_Surface* surf = TTF_RenderUTF8_Blended(font, line.c_str(), helpColor);
+                if(!surf) continue;
+                SDL_Texture* tex = SDL_CreateTextureFromSurface(ren, surf);
+                SDL_Rect dst = {boxX + 20, ty, surf->w, surf->h};
+                SDL_RenderCopy(ren, tex, nullptr, &dst);
+                ty += surf->h + 8;
+                SDL_DestroyTexture(tex);
+                SDL_FreeSurface(surf);
+            }
+        }
+
         SDL_RenderPresent(ren);
         SDL_Delay(16);
     }
 
-    // save scroll and fontSize using full path
+    // Save config
     cfg[textFile] = {scroll_y, fontSize};
     save_config(cfg);
 
