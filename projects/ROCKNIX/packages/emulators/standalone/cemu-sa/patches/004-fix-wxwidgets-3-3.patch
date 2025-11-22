@@ -1,23 +1,21 @@
-From 174a6b0ba1a6f3b4c260691c89fc840465847ce0 Mon Sep 17 00:00:00 2001
-From: oltolm <oleg.tolmatcev@gmail.com>
-Date: Sat, 7 Jun 2025 20:00:19 +0200
-Subject: [PATCH] make code compatible wxWidgets 3.3
-
----
- src/gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp | 2 +-
- src/gui/TitleManager.cpp                              | 2 +-
- src/gui/components/wxTitleManagerList.cpp             | 2 +-
- src/gui/debugger/DisasmCtrl.cpp                       | 6 +++---
- src/gui/debugger/DumpCtrl.cpp                         | 4 ++--
- src/gui/debugger/RegisterCtrl.cpp                     | 6 +++---
- src/gui/debugger/RegisterWindow.cpp                   | 6 +++---
- 7 files changed, 14 insertions(+), 14 deletions(-)
-
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 560728f..d07ad58 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -201,7 +201,7 @@ if(UNIX AND NOT APPLE)
+ endif()
+ 
+ if (ENABLE_WXWIDGETS)
+-	find_package(wxWidgets 3.2 REQUIRED COMPONENTS base core gl propgrid xrc)
++	find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core gl propgrid xrc)
+ endif()
+ 
+ if (ENABLE_CUBEB)
 diff --git a/src/gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp b/src/gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
-index 2186f8eace..53e3b9958b 100644
+index c77ae08..955c526 100644
 --- a/src/gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
 +++ b/src/gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
-@@ -283,7 +283,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
+@@ -285,7 +285,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
  	std::unique_ptr<FileStream> skyFile(FileStream::openFile2(_utf8ToPath(path.utf8_string()), true));
  	if (!skyFile)
  	{
@@ -27,7 +25,7 @@ index 2186f8eace..53e3b9958b 100644
  		return;
  	}
 diff --git a/src/gui/TitleManager.cpp b/src/gui/TitleManager.cpp
-index 1dd41b3b1c..67f13e05e2 100644
+index 4a4f7f5..6d9e787 100644
 --- a/src/gui/TitleManager.cpp
 +++ b/src/gui/TitleManager.cpp
 @@ -356,7 +356,7 @@ void TitleManager::OnTitleSearchComplete(wxCommandEvent& event)
@@ -40,10 +38,10 @@ index 1dd41b3b1c..67f13e05e2 100644
  
  void TitleManager::OnFilterChanged(wxCommandEvent& event)
 diff --git a/src/gui/components/wxTitleManagerList.cpp b/src/gui/components/wxTitleManagerList.cpp
-index 2f4a9ed1b7..a5774b144b 100644
+index e8efb06..d1c605f 100644
 --- a/src/gui/components/wxTitleManagerList.cpp
 +++ b/src/gui/components/wxTitleManagerList.cpp
-@@ -576,7 +576,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
+@@ -574,7 +574,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
  		}
  		else
  		{
@@ -53,7 +51,7 @@ index 2f4a9ed1b7..a5774b144b 100644
  		if (progressDialog.WasCancelled())
  			writerContext.cancelled.store(true);
 diff --git a/src/gui/debugger/DisasmCtrl.cpp b/src/gui/debugger/DisasmCtrl.cpp
-index e74d64b92e..1f4b739f8f 100644
+index 2f38d55..01313e9 100644
 --- a/src/gui/debugger/DisasmCtrl.cpp
 +++ b/src/gui/debugger/DisasmCtrl.cpp
 @@ -615,7 +615,7 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
@@ -74,7 +72,7 @@ index e74d64b92e..1f4b739f8f 100644
  		if (set_value_dialog.ShowModal() == wxID_OK)
  		{
  			rplDebugSymbol_createComment(virtualAddress, set_value_dialog.GetValue().wc_str());
-@@ -850,4 +850,4 @@ void DisasmCtrl::GoToAddressDialog()
+@@ -842,4 +842,4 @@ void DisasmCtrl::GoToAddressDialog()
  			}
  		}
  	}
@@ -82,7 +80,7 @@ index e74d64b92e..1f4b739f8f 100644
 \ No newline at end of file
 +}
 diff --git a/src/gui/debugger/DumpCtrl.cpp b/src/gui/debugger/DumpCtrl.cpp
-index 16fdd87d24..fad93bd367 100644
+index 16fdd87..fad93bd 100644
 --- a/src/gui/debugger/DumpCtrl.cpp
 +++ b/src/gui/debugger/DumpCtrl.cpp
 @@ -196,7 +196,7 @@ void DumpCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
@@ -102,7 +100,7 @@ index 16fdd87d24..fad93bd367 100644
 \ No newline at end of file
 +}
 diff --git a/src/gui/debugger/RegisterCtrl.cpp b/src/gui/debugger/RegisterCtrl.cpp
-index bcf6fb5af9..24cae60b04 100644
+index bcf6fb5..24cae60 100644
 --- a/src/gui/debugger/RegisterCtrl.cpp
 +++ b/src/gui/debugger/RegisterCtrl.cpp
 @@ -201,7 +201,7 @@ void RegisterCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
@@ -133,7 +131,7 @@ index bcf6fb5af9..24cae60b04 100644
  			{
  				const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
 diff --git a/src/gui/debugger/RegisterWindow.cpp b/src/gui/debugger/RegisterWindow.cpp
-index 55c6386f74..b18d4e2710 100644
+index 55c6386..b18d4e2 100644
 --- a/src/gui/debugger/RegisterWindow.cpp
 +++ b/src/gui/debugger/RegisterWindow.cpp
 @@ -339,7 +339,7 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
