@@ -26,6 +26,13 @@ if [ ! -f "/storage/.config/MangoHud/MangoHud.conf" ]; then
      cp -r "/usr/config/MangoHud/MangoHud.conf" "/storage/.config/MangoHud"
 fi
 
+# Enable MangoHud support
+MANGOHUD_INIT_STATE=$(get_setting "rocknix.mangohud.state")
+if [ ! -n "${MANGOHUD_INIT_STATE}" ]; then
+  MANGOHUD_INIT_STATE="off"
+  set_setting "rocknix.mangohud.state" "${MANGOHUD_INIT_STATE}"
+fi
+
 ### Check if a value was sent to mangohud_set
 if [ ! -n "${MHUD_SET}" ]; then
  MHUD_SET="NULL"
