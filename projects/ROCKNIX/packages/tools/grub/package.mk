@@ -75,8 +75,8 @@ makeinstall_target() {
 
   mkdir -p ${INSTALL}/usr/share/bootloader/boot/grub
   cp -av ${PKG_DIR}/config/* ${INSTALL}/usr/share/bootloader/boot/grub
-  mkdir -p ${INSTALL}/usr/share/bootloader/EFI/BOOT
-  cp -av bootaa64.efi ${INSTALL}/usr/share/bootloader/EFI/BOOT
+  mkdir -p ${INSTALL}/usr/share/bootloader/EFI/ROCKNIX
+  cp -av bootaa64.efi ${INSTALL}/usr/share/bootloader/EFI/ROCKNIX
 
   # Create grub configuration
   generate_grub_cfg_body > "${INSTALL}/usr/share/bootloader/boot/grub/grub.cfg"
