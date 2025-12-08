@@ -84,7 +84,6 @@
     <file short="thor" full="AYN Thor">qcs8550-ayn-thor</file>
     <file short="pocketace" full="AYANEO Pocket ACE">qcs8550-ayaneo-pocketace</file>
     <file short="pocketdmg" full="AYANEO Pocket DMG">qcs8550-ayaneo-pocketdmg</file>
-    <file short="pocketds" full="AYANEO Pocket DS">qcs8550-ayaneo-pocketds</file>
     <file short="pocketevo" full="AYANEO Pocket EVO">qcs8550-ayaneo-pocketevo</file>
   </SM8550>
   <SM8650 mkimage_options="grub,dtb,abl" dtb_prefix="qcom">
