@@ -7,7 +7,7 @@
 set -euo pipefail
 
 case "$HW_DEVICE" in
-  SM8250|SM8550|SM8650)
+  SM6115|SM8250|SM8550|SM8650)
     ;;
   *)
     echo "This script is not compatible with this device!"
@@ -21,6 +21,11 @@ ABL_A="/dev/disk/by-partlabel/abl_a"
 ABL_B="/dev/disk/by-partlabel/abl_b"
 
 # ---- Sanity checks ----
+if [ ! -f "${ELF}" ]; then
+  echo "Error: ABL update not found"
+  exit 1
+fi
+
 if [ ! -b "${ABL_A}" ] || [ ! -b "${ABL_B}" ]; then
   echo "Error: ABL partitions not found"
   exit 1
