@@ -314,6 +314,9 @@
 		simple-audio-card,routing =
 			"Headphones", "HPOL",
 			"Headphones", "HPOR";
+		pinctrl-0 = <&spk_amp_enable_h>;
+		pinctrl-names = "default";
+		simple-audio-card,pa-gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
 
 		simple-audio-card,codec {
 			sound-dai = <&rk817>;
@@ -736,6 +739,12 @@
 		vcc_wifi_h: vcc-wifi-h {
 			rockchip,pins =
 				<0 RK_PA0 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+	audio-amplifier {
+		spk_amp_enable_h: spk-amp-enable-h {
+			rockchip,pins =
+				<4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 };
