@@ -307,6 +307,7 @@
 	sound {
 		compatible = "simple-audio-card";
 		simple-audio-card,name = "rk817_ext";
+		simple-audio-card,aux-devs = <&spk_amp>;
 		simple-audio-card,format = "i2s";
 		simple-audio-card,mclk-fs = <256>;
 		simple-audio-card,widgets =
@@ -314,9 +315,6 @@
 		simple-audio-card,routing =
 			"Headphones", "HPOL",
 			"Headphones", "HPOR";
-		pinctrl-0 = <&spk_amp_enable_h>;
-		pinctrl-names = "default";
-		simple-audio-card,pa-gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
 
 		simple-audio-card,codec {
 			sound-dai = <&rk817>;
@@ -327,13 +325,23 @@
 		};
 	};
 
+    spk_amp: audio-amplifier {
+		compatible = "simple-audio-amplifier";
+        /* This gpio has been verified to turn off speakers on rk2023 */
+		enable-gpios = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&spk_amp_enable_h>;
+		pinctrl-names = "default";
+		sound-name-prefix = "Speaker Amp";
+		/* This is a guess based on rgxx3-series*/
+		VCC-supply = <&vcc_3v3>;
+	};
+
 	vcc3v3_lcd0_n: regulator-vcc3v3-lcd0 {
 		compatible = "regulator-fixed";
 		gpio = <&gpio0 RK_PC2 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		pinctrl-0 = <&vcc_lcd_h>;
 		pinctrl-names = "default";
-		regulator-boot-on;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		regulator-name = "vcc3v3_lcd0_n";
@@ -359,7 +367,6 @@
 		pinctrl-0 = <&vcc_wifi_h>;
 		pinctrl-names = "default";
 		regulator-always-on;
-		regulator-boot-on;
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
 		regulator-name = "vcc_wifi";
@@ -421,6 +428,8 @@
 	ddc-i2c-bus = <&i2c5>;
 	pinctrl-0 = <&hdmitxm0_cec>;
 	pinctrl-names = "default";
+	avdd-0v9-supply = <&vdda0v9_pmu>;
+	avdd-1v8-supply = <&vcca1v8_pmu>;
 	status = "okay";
 };
 
@@ -558,7 +567,6 @@
 
 			vccio_acodec: LDO_REG4 {
 				regulator-always-on;
-				regulator-boot-on;
 				regulator-min-microvolt = <3300000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vccio_acodec";
@@ -603,7 +611,6 @@
 
 			vcc1v8_dvp: LDO_REG8 {
 				regulator-always-on;
-				regulator-boot-on;
 				regulator-min-microvolt = <1800000>;
 				regulator-max-microvolt = <3300000>;
 				regulator-name = "vcc1v8_dvp";
@@ -625,7 +632,6 @@
 
 			dcdc_boost: BOOST {
 				regulator-always-on;
-				regulator-boot-on;
 				regulator-min-microvolt = <4700000>;
 				regulator-max-microvolt = <5400000>;
 				regulator-name = "boost";
@@ -735,6 +741,13 @@
 		};
 	};
 
+	wifi {
+		wifi_host_wake_l: wifi-host-wake-l {
+			rockchip,pins =
+				<4 RK_PA1 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
 	vcc-wifi {
 		vcc_wifi_h: vcc-wifi-h {
 			rockchip,pins =
@@ -806,6 +819,8 @@
 };
 
 &sdmmc2 {
+	#address-cells = <1>;
+	#size-cells = <0>;
 	bus-width = <4>;
 	cap-sd-highspeed;
 	cap-sdio-irq;
@@ -820,6 +835,15 @@
 	no-sd;
 	sd-uhs-sdr50;
 	status = "okay";
+
+	wifi@1 {
+		reg = <1>;
+		interrupt-names = "host-wake";
+		interrupt-parent = <&gpio4>;
+		interrupts = <RK_PA1 IRQ_TYPE_LEVEL_HIGH>;
+		pinctrl-0 = <&wifi_host_wake_l>;
+		pinctrl-names = "default";
+	};
 };
 
 &tsadc {
@@ -829,6 +853,7 @@
 };
 
 &uart1 {
+	dma-names = "tx", "rx";
 	pinctrl-0 = <&uart1m1_xfer &uart1m1_ctsn &uart1m1_rtsn>;
 	pinctrl-names = "default";
 	uart-has-rtscts;
