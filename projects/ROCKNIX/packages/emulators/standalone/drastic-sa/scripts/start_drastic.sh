@@ -61,21 +61,21 @@ ln -sf /storage/roms/nds /storage/.config/drastic/backup
 
 #Apply ES features to config
 if [ "${HIRES3D}" = "1" ]; then
-    sed -i 's/^hires_3d = .*/hires_3d = 1/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^hires_3d = .*/hires_3d = 1/' /storage/.config/drastic/config/drastic.cfg
 else
-    sed -i 's/^hires_3d = .*/hires_3d = 0/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^hires_3d = .*/hires_3d = 0/' /storage/.config/drastic/config/drastic.cfg
 fi
 
 if [ "${THREADED3D}" = "1" ]; then
-    sed -i 's/^threaded_3d = .*/threaded_3d = 1/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^threaded_3d = .*/threaded_3d = 1/' /storage/.config/drastic/config/drastic.cfg
 else
-    sed -i 's/^threaded_3d = .*/threaded_3d = 0/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^threaded_3d = .*/threaded_3d = 0/' /storage/.config/drastic/config/drastic.cfg
 fi
 
 if [ "${FOLLOW3D}" = "1" ]; then
-    sed -i 's/^fix_main_2d_screen = .*/fix_main_2d_screen = 1/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^fix_main_2d_screen = .*/fix_main_2d_screen = 1/' /storage/.config/drastic/config/drastic.cfg
 else
-    sed -i 's/^fix_main_2d_screen = .*/fix_main_2d_screen = 0/' /storage/.config/drastic/drastic.cfg
+    sed -i 's/^fix_main_2d_screen = .*/fix_main_2d_screen = 0/' /storage/.config/drastic/config/drastic.cfg
 fi
 
 if [ ! "${QUIRK_DEVICE}" = "Anbernic RG DS" ]; then
