@@ -49,3 +49,7 @@ fi
 ### Now set the pipewire mixer volume
 /usr/bin/volume ${VOLUME}
 
+### Run quantum audio hack if exists
+if [ -n "/usr/sbin/quantum" ]; then
+  /usr/sbin/quantum
+fi
