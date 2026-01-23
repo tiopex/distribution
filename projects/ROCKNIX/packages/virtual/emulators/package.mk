@@ -836,6 +836,18 @@ makeinstall_target() {
   esac
   add_es_system nds
 
+  ### Nintendo DSiWare
+  case ${DEVICE} in
+    H700|RK3326)
+      add_emu_core ndsiware retroarch melondsds true
+    ;;
+    *)
+      add_emu_core ndsiware melonds melonds-sa true
+      add_emu_core ndsiware retroarch melondsds false
+    ;;
+  esac
+  add_es_system ndsiware
+
   ### Nintendo NES
   add_emu_core nes retroarch nestopia true
   add_emu_core nes retroarch fceumm false
