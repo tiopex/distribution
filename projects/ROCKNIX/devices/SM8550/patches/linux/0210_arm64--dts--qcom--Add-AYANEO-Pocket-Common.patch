@@ -1130,7 +1130,7 @@ index 000000000000..58d9ab342fe9
 +	};
 +
 +	upd720201_active: upd720201-active {
-+		pins = "gpio10",  "gpio13", "gpio18", "gpio52";
++		pins = "gpio10",  "gpio13", "gpio18";
 +		function = "gpio";
 +		drive-strength = <2>;
 +		bias-pull-up;

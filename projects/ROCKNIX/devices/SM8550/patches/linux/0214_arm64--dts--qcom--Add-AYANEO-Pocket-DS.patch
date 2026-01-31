@@ -1,9 +1,36 @@
+diff --git a/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocket-common.dtsi b/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocket-common.dtsi
+index 168c33f13..9f0d041a0 100644
+--- a/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocket-common.dtsi
++++ b/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocket-common.dtsi
+@@ -1092,6 +1092,22 @@ spk_amp_r: speaker@0,1 {
+ &tlmm {
+ 	gpio-reserved-ranges = <32 8>;
+ 
++	gpio52_hall_default: gpio52-hall-default {
++		pins = "gpio52";
++		function = "gpio";
++		input-enable;
++		bias-pull-up;
++		drive-strength = <2>;
++	};
++
++	gpio52_hall_suspend: gpio52-hall-suspend {
++		pins = "gpio52";
++		function = "gpio";
++		input-enable;
++		bias-pull-up;
++		drive-strength = <2>;
++	};
++
+ 	bt_default: bt-default-state {
+ 		bt-en-pins {
+ 			pins = "gpio81";
 diff --git a/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocketds.dts b/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocketds.dts
 new file mode 100644
-index 000000000..e8510012e
+index 000000000..362dca8c6
 --- /dev/null
 +++ b/arch/arm64/boot/dts/qcom/qcs8550-ayaneo-pocketds.dts
-@@ -0,0 +1,238 @@
+@@ -0,0 +1,253 @@
 +// SPDX-License-Identifier: BSD-3-Clause
 +/*
 + * Copyright (c) 2025, Teguh Sobirin.
@@ -20,6 +47,21 @@ index 000000000..e8510012e
 +	qcom,msm-id = <0x258 0x20000>, <0x259 0x20000>;
 +	compatible = "ayaneo,pocketds", "qcom,qcs8550", "qcom,sm8550";
 +	rocknix-u-boot-dt-id = "u-boot-pocket-ds";
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		hall-lid-sensor {
++			label = "Hall Lid Sensor";
++			gpios = <&tlmm 52 GPIO_ACTIVE_LOW>;
++			pinctrl-names = "default", "sleep";
++			pinctrl-0 = <&gpio52_hall_default>;
++			pinctrl-1 = <&gpio52_hall_suspend>;
++			linux,input-type = <EV_SW>;
++			linux,code = <SW_LID>;
++			wakeup-source;
++		};
++	};
 +
 +	tca6424_vcc: regulator-tca6424-vcc {
 +		compatible = "regulator-fixed";
