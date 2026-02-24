@@ -180,6 +180,9 @@ post_install() {
   add_group root 0
   add_group users 100
 
+  add_group fex 1000
+  add_user fex fex 1000 1000 "fex User" "/storage" "/bin/sh"
+
   add_user nobody x 65534 65534 "Nobody" "/" "/bin/sh"
   add_group nogroup 65534
 
