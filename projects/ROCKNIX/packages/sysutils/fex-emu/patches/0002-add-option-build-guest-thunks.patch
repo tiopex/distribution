@@ -1,0 +1,36 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 77b6561..f7dc0c4 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -607,11 +607,21 @@ endif()
+
+ if (BUILD_THUNKS)
+   set(FEX_PROJECT_SOURCE_DIR ${PROJECT_SOURCE_DIR})
+-  add_subdirectory(ThunkLibs/Generator)
++  option(BUILD_GUEST_THUNKS "Build guest thunks" OFF)
++  option(USE_HOST_THUNKGEN "Use prebuilt host thunkgen" OFF)
++
++  if (USE_HOST_THUNKGEN)
++    add_executable(thunkgen IMPORTED GLOBAL)
++    set_target_properties(thunkgen PROPERTIES
++      IMPORTED_LOCATION ${GENERATOR_EXE}
++    )
++  else()
++    add_subdirectory(ThunkLibs/Generator)
++  endif()
+
+   # Thunk targets for both host libraries and IDE integration
+   add_subdirectory(ThunkLibs/HostLibs)
+-
++  if (BUILD_GUEST_THUNKS)
+   # Thunk targets for IDE integration of guest code, only
+   add_subdirectory(ThunkLibs/GuestLibs)
+
+@@ -679,6 +689,7 @@ if (BUILD_THUNKS)
+
+   add_dependencies(uninstall uninstall_guest-libs)
+   add_dependencies(uninstall uninstall_guest-libs-32)
++  endif()
+ endif()
+
+ if (BUILD_STEAM_SUPPORT)

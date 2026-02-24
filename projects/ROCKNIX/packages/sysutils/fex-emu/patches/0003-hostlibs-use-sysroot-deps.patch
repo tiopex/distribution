@@ -1,0 +1,31 @@
+diff --git a/ThunkLibs/HostLibs/CMakeLists.txt b/ThunkLibs/HostLibs/CMakeLists.txt
+index 65025a2..15a062a 100644
+--- a/ThunkLibs/HostLibs/CMakeLists.txt
++++ b/ThunkLibs/HostLibs/CMakeLists.txt
+@@ -114,8 +114,13 @@ foreach(GUEST_BITNESS IN LISTS BITNESS_LIST)
+   # target_include_directories(SDL2-host PRIVATE ${SDL2_INCLUDE_DIRS})
+
+   generate(libdrm ${CMAKE_CURRENT_SOURCE_DIR}/../libdrm/libdrm_interface.cpp ${GUEST_BITNESS})
+-  target_include_directories(libdrm-${GUEST_BITNESS}-deps INTERFACE /usr/include/drm/)
+-  target_include_directories(libdrm-${GUEST_BITNESS}-deps INTERFACE /usr/include/libdrm/)
++
++  target_include_directories(libdrm-${GUEST_BITNESS}-deps INTERFACE
++    ${CMAKE_SYSROOT}/usr/include
++    ${CMAKE_SYSROOT}/usr/include/drm
++    ${CMAKE_SYSROOT}/usr/include/libdrm
++  )
++
+   add_host_lib(drm ${GUEST_BITNESS})
+ endforeach()
+
+@@ -132,7 +137,9 @@ foreach(GUEST_BITNESS IN LISTS BITNESS_LIST)
+
+   generate(libwayland-client ${CMAKE_CURRENT_SOURCE_DIR}/../libwayland-client/libwayland-client_interface.cpp ${GUEST_BITNESS})
+   add_host_lib(wayland-client ${GUEST_BITNESS})
+-  target_include_directories(libwayland-client-${GUEST_BITNESS}-deps INTERFACE /usr/include/wayland)
++  target_include_directories(libwayland-client-${GUEST_BITNESS}-deps INTERFACE
++    ${CMAKE_SYSROOT}/usr/include/wayland
++  )
+
+   generate(libEGL ${CMAKE_CURRENT_SOURCE_DIR}/../libEGL/libEGL_interface.cpp ${GUEST_BITNESS})
+   add_host_lib(EGL ${GUEST_BITNESS})
