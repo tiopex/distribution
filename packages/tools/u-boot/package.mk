@@ -34,7 +34,7 @@ post_patch() {
 }
 
 make_target() {
-  # U-Boot needs host openssl for tools - make sure it finds right one
+  ## U-Boot needs host openssl for tools - make sure it finds right one
   # setup_pkg_config_host is required
   setup_pkg_config_host
   if [ -z "${UBOOT_SYSTEM}" ]; then
