@@ -48,7 +48,7 @@ pre_configure_target() {
   mkdir -p .${TARGET_NAME}
     cd .${TARGET_NAME}
 
-  # configure requires explicit TARGET_PREFIX binaries when cross compiling.
+  ## configure requires explicit TARGET_PREFIX binaries when cross compiling.
   export TARGET_CC="${TARGET_PREFIX}gcc"
   export TARGET_OBJCOPY="${TARGET_PREFIX}objcopy"
   export TARGET_STRIP="${TARGET_PREFIX}strip"

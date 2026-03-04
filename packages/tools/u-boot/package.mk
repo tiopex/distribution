@@ -52,7 +52,7 @@ make_target() {
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/share/bootloader
 
-    # Only install u-boot.img et al when building a board specific image
+    ## Only install u-boot.img et al when building a board specific image
     if [ -n "${UBOOT_SYSTEM}" ]; then
       find_file_path bootloader/install && . ${FOUND_PATH}
     fi
