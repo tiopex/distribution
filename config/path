@@ -67,6 +67,14 @@ if [ -z "$CCACHE_DIR" ]; then
   export CCACHE_DIR=$BUILD/.ccache
 fi
 
+if [ -z "$SCCACHE_DIR" ]; then
+  export SCCACHE_DIR=$BUILD/.ccache/.sccache
+fi
+
+if [ -z "$RUSTC_WRAPPER" ]; then
+  export RUSTC_WRAPPER="${TOOLCHAIN}/bin/sccache"
+fi
+
 # keep a copy of ccache dir used for toolchain ccache
 export BUILD_CCACHE_DIR="${CCACHE_DIR}"
 
