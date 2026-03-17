@@ -44,6 +44,7 @@ jobs:
             PROJECT=ROCKNIX DEVICE=S922X ./tools/download-tool 
             PROJECT=ROCKNIX DEVICE=SM8250 ./tools/download-tool 
             PROJECT=ROCKNIX DEVICE=SM8550 ./tools/download-tool
+            PROJECT=ROCKNIX DEVICE=SM8650 ./tools/download-tool
           max_attempts: 6
           retry_interval: 10
       - name: print number of downloaded artifacts
@@ -53,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           EXISTING_FILES=$(gh release view sources --repo ${{ github.repository_owner }}/distribution-sources --json assets --jq '.assets[].name' || true)
-          mapfile -t LOCAL_FILES < <(find sources/ -type f \( -name '*.tar.gz' -o -name '*.tar.xz' -o -name '*.tgz' -o -name '*.tar.bz2' -o -name '*.deb' -o -name '*.tar.zst' \))
+          mapfile -t LOCAL_FILES < <(find sources/ -type f \( -name '*.tar.gz' -o -name '*.tar.xz' -o -name '*.tgz' -o -name '*.tar.bz2' -o -name '*.deb' -o -name '*.tar.zst' -o -name '*.AppImage' \))
           
           MISSING_FILES=()
           for file in "${LOCAL_FILES[@]}"; do
