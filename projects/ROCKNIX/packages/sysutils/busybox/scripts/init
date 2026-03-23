@@ -342,7 +342,7 @@ check_is_compatible() {
   old_project_arch="$(get_project_arch "/sysroot")" || return
   new_project_arch="$(get_project_arch "/update")" || return
   old_project_device="$(get_project_device "/sysroot")" || return
-  new_project_device="$(get_project_device "/update")" || return
+  new_project_device="$(get_project_device "/sysroot")" || return
 
   # If old or new project/arch isn't available then could be very old (pre-/etc/os-release) build - have to trust it
   if [ -n "${old_project_arch}" -a -n "${new_project_arch}" ]; then
