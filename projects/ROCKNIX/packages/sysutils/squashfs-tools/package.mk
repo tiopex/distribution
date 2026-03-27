@@ -13,6 +13,7 @@ PKG_LONGDESC="Tools for squashfs, a highly compressed read-only filesystem for L
 PKG_TOOLCHAIN="manual"
 
 make_target() {
+  make -C squashfs-tools clean
   make -C squashfs-tools \
           unsquashfs
 }
