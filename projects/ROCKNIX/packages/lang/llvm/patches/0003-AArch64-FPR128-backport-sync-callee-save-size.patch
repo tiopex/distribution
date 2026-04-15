@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ROCKNIX <rocknix@local>
+Date: Mon, 13 Apr 2026 00:00:00 +0000
+Subject: [PATCH] [AArch64] Sync callee-save stack size after FPR128 AlignOffset
+
+PR #184314 / issue #183708 realign ByteOffset (and scalable offsets) inside
+computeCalleeSaveRegisterPairs. determineCalleeSaves() still sets
+CalleeSavedStackSize from a naive sum of spill sizes, so PEI validation in
+AArch64FunctionInfo::getCalleeSavedStackSize(MachineFrameInfo&) can disagree
+with the span implied by spill slot offsets (seen with FEX + LTO).
+
+Accumulate alignment slop from each AlignOffset adjustment and bump
+CalleeSavedStackSize / SVECalleeSavedStackSize so cached sizes match layout.
+
+Depends-on: 0001-AArch64-Ensure-FPR128-callee-save-stack-offsets-are-.patch
+
+---
+ llvm/lib/Target/AArch64/AArch64FrameLowering.cpp | 38 +++++++++++++++++++++++---
+ 1 file changed, 34 insertions(+), 4 deletions(-)
+
+diff --git a/llvm/lib/Target/AArch64/AArch64FrameLowering.cpp b/llvm/lib/Target/AArch64/AArch64FrameLowering.cpp
+--- a/llvm/lib/Target/AArch64/AArch64FrameLowering.cpp
++++ b/llvm/lib/Target/AArch64/AArch64FrameLowering.cpp
+@@ -3021,6 +3021,11 @@ static void computeCalleeSaveRegisterPairs(
+   int ScalableByteOffset = AFI->getSVECalleeSavedStackSize();
+   bool NeedGapToAlignStack = AFI->hasCalleeSaveStackFreeSpace();
+   Register LastReg = 0;
++  const unsigned OrigSVECalleeSave = (unsigned)ScalableByteOffset;
++  const unsigned OrigFixedCalleeSaveSize =
++      NeedsWinCFI ? 0u : (unsigned)ByteOffset;
++  unsigned FixedAlignSlopAccum = 0;
++  unsigned ScalableAlignSlopAccum = 0;
+ 
+   auto AlignOffset = [StackFillDir](int Offset, int Align) {
+     if (StackFillDir < 0)
+@@ -3138,13 +3143,22 @@ static void computeCalleeSaveRegisterPairs(
+ 
+     // Realign the scalable offset if necessary. This is relevant when spilling
+     // predicates on Windows.
+-    if (RPI.isScalable() && ScalableByteOffset % Scale != 0)
++    if (RPI.isScalable() && ScalableByteOffset % Scale != 0) {
++      const int Prev = ScalableByteOffset;
+       ScalableByteOffset = AlignOffset(ScalableByteOffset, Scale);
++      ScalableAlignSlopAccum +=
++          (unsigned)(ScalableByteOffset > Prev ? ScalableByteOffset - Prev
++                                              : Prev - ScalableByteOffset);
++    }
+ 
+     // Realign the fixed offset if necessary. This is relevant when spilling Q
+     // registers after spilling an odd amount of X registers.
+-    if (!RPI.isScalable() && ByteOffset % Scale != 0)
++    if (!RPI.isScalable() && ByteOffset % Scale != 0) {
++      const int Prev = ByteOffset;
+       ByteOffset = AlignOffset(ByteOffset, Scale);
++      FixedAlignSlopAccum +=
++          (unsigned)(ByteOffset > Prev ? ByteOffset - Prev : Prev - ByteOffset);
++    }
+ 
+     int OffsetPre = RPI.isScalable() ? ScalableByteOffset : ByteOffset;
+     assert(OffsetPre % Scale == 0);
+@@ -3218,6 +3232,15 @@ static void computeCalleeSaveRegisterPairs(
+     if (RPI.isPaired())
+       i += RegInc;
+   }
++  // determineCalleeSaves() sizes the callee-save block from register widths only.
++  // AlignOffset padding above can widen the laid-out region vs that estimate;
++  // refresh AFI so getCalleeSavedStackSize(MFI) agrees with spill slot offsets.
++  if (!NeedsWinCFI && FixedAlignSlopAccum)
++    AFI->setCalleeSavedStackSize(
++        alignTo(OrigFixedCalleeSaveSize + FixedAlignSlopAccum, 16));
++  if (ScalableAlignSlopAccum)
++    AFI->setSVECalleeSavedStackSize(
++        alignTo(OrigSVECalleeSave + ScalableAlignSlopAccum, 16));
+   if (NeedsWinCFI) {
+     // If we need an alignment gap in the stack, align the topmost stack
+     // object. A stack frame with a gap looks like this, bottom up:
