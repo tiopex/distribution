@@ -1,0 +1,12 @@
+--- a/meson.build
++++ b/meson.build
+@@ -126,8 +126,7 @@ summary({'libnotify': get_option('libnotify'),
+ subdir('src')
+ subdir('data')
+ subdir('po')
+-subdir('help')
+ 
+ gnome.post_install(
+-  gtk_update_icon_cache: true,
++  gtk_update_icon_cache: false,
+ )

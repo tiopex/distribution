@@ -1,0 +1,23 @@
+--- a/meson.build
++++ b/meson.build
+@@ -95,11 +95,13 @@
+ gtk_update_icon_cache = find_program(
+   'gtk4-update-icon-cache',
+   'gtk-update-icon-cache',
+-  required : true,
+-)
+-meson.add_install_script(
+-  gtk_update_icon_cache,
+-  '-qtf',
+-  get_option('prefix') / adwaita_dir,
+-  skip_if_destdir: true,
++  required : false,
+ )
++if gtk_update_icon_cache.found()
++  meson.add_install_script(
++    gtk_update_icon_cache,
++    '-qtf',
++    get_option('prefix') / adwaita_dir,
++    skip_if_destdir: true,
++  )
++endif

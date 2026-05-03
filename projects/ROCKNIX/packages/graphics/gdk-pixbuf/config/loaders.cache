@@ -1,6 +1,7 @@
 # GdkPixbuf Image Loader Modules file
-# Automatically generated file, do not edit
-# Created by gdk-pixbuf-query-loaders from gdk-pixbuf-2.42.4
+# Do not list png/jpeg here: gdk-pixbuf is built with those loaders builtin
+# (default meson builtin_loaders). Remaining entries are shared modules under
+# /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/
 #
 # LoaderDir = /usr/lib/gdk-pixbuf-2.0/2.10.0/loaders
 #
@@ -35,18 +36,6 @@
 "  \001   " "zz znz" 100
 "  \002   " "zz znz" 100
 
-"/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-jpeg.so"
-"jpeg" 5 "gdk-pixbuf" "JPEG" "LGPL"
-"image/jpeg" ""
-"jpeg" "jpe" "jpg" ""
-"\377\330" "" 100
-
-"/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-png.so"
-"png" 5 "gdk-pixbuf" "PNG" "LGPL"
-"image/png" ""
-"png" ""
-"\211PNG\r\n\032\n" "" 100
-
 "/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-pnm.so"
 "pnm" 4 "gdk-pixbuf" "PNM/PBM/PGM/PPM" "LGPL"
 "image/x-portable-anymap" "image/x-portable-bitmap" "image/x-portable-graymap" "image/x-portable-pixmap" ""
@@ -64,13 +53,6 @@
 "qtif" "qif" ""
 "abcdidsc" "xxxx    " 100
 "abcdidat" "xxxx    " 100
-
-"/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-svg.so"
-"svg" 6 "gdk-pixbuf" "Scalable Vector Graphics" "LGPL"
-"image/svg+xml" "image/svg" "image/svg-xml" "image/vnd.adobe.svg+xml" "text/xml-svg" "image/svg+xml-compressed" ""
-"svg" "svgz" "svg.gz" ""
-" <svg" "*    " 100
-" <!DOCTYPE svg" "*             " 100
 
 "/usr/lib/gdk-pixbuf-2.0/2.10.0/loaders/libpixbufloader-tga.so"
 "tga" 4 "gdk-pixbuf" "Targa" "LGPL"
