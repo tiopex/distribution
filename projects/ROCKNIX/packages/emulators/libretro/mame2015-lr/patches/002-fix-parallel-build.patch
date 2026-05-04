@@ -1,0 +1,11 @@
+--- a/Makefile
++++ b/Makefile
+@@ -951,7 +951,7 @@
+ 	$(CC) $(CDEFS) $(CFLAGS) -O1 -c $< -o $@
+ endif
+ 
+-$(OBJ)/%.o: $(SRC)/%.c | $(OSPREBUILD)
++$(OBJ)/%.o: $(SRC)/%.c | maketree $(OSPREBUILD)
+ 	$(CC) $(CDEFS) $(CFLAGS) -c $< -o $@
+ 
+ $(OBJ)/%.o: $(OBJ)/%.c | $(OSPREBUILD)
