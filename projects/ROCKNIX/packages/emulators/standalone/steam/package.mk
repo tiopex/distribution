@@ -10,6 +10,9 @@ PKG_DEPENDS_TARGET="mesa:host fex-emu gamescope nss networkmanager zenity"
 PKG_LONGDESC="Steam is the ultimate destination for playing, discussing, and creating games"
 PKG_TOOLCHAIN="manual"
 
+if [ "${PIPEWIRE_SUPPORT}" = "yes" ]; then
+  PKG_DEPENDS_TARGET+=" xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr"
+fi
 
 unpack() {
  mkdir -p ${PKG_BUILD}

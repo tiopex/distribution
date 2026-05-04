@@ -32,6 +32,7 @@ env_file=/storage/.config/profile.d/095-sway
 
 # Write wlroots env vars
 rm -f ${env_file}
+echo "XDG_CURRENT_DESKTOP=sway" >> ${env_file}
 echo "WLR_DRM_DEVICES=/dev/dri/card${card_no}" >> ${env_file}
 echo "WLR_BACKENDS=drm,libinput" >> ${env_file}
 

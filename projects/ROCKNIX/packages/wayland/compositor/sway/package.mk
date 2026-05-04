@@ -8,6 +8,10 @@ PKG_DEPENDS_TARGET="toolchain glib wayland wayland-protocols libdrm libxkbcommon
 PKG_LONGDESC="i3-compatible Wayland compositor"
 PKG_TOOLCHAIN="meson"
 
+if [ "${PIPEWIRE_SUPPORT}" = "yes" ]; then
+  PKG_DEPENDS_TARGET+=" xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-wlr"
+fi
+
 case ${DEVICE} in
   RK3588)
     PKG_VERSION="1.9"

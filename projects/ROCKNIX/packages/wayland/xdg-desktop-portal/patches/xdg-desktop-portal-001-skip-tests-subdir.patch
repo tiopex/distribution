@@ -1,0 +1,14 @@
+--- a/meson.build
++++ b/meson.build
+@@ -185,9 +185,10 @@ subdir('data')
+ subdir('src')
+ subdir('document-portal')
+-subdir('tests')
+ subdir('po')
+ subdir('doc')
+ 
++enable_pytest = false
++
+ ###### generate config.h
+ configure_file(output: 'config.h', configuration: config_h)
+ 
