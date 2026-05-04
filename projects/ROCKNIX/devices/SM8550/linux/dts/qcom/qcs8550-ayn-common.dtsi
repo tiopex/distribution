@@ -111,7 +111,7 @@
 		interrupt-parent = <&tlmm>;
 		interrupts = <13 IRQ_TYPE_EDGE_FALLING>;
 
-		cooling-levels = <0 30 45 60 70 90 120 150>;
+		cooling-levels = <0 30 45 60 70 90 120 255>;
 		#cooling-cells = <2>;
 	};
 
