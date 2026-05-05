@@ -1,0 +1,65 @@
+name: Feature Freeze Check
+
+on:
+  push:
+    branches: [next]
+  pull_request:
+    branches: [next]
+
+jobs:
+  check-freeze:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check if feature freeze is active
+        run: |
+          # DEBUG: Simulate being in the last 7 days of the month
+          # Remove the next line to use real date
+          DAY=25
+          #DAY=$(date +%d)
+          LAST_DAY=$(date -d "$(date +%Y-%m-01) +1 month -1 day" +%d)
+          FREEZE_START=$((LAST_DAY - 6))
+
+          if [ "$DAY" -ge "$FREEZE_START" ]; then
+            echo "🧊 Feature freeze is active (last 7 days of the month)."
+            echo "Only commits prefixed with 'bugfix:' are allowed."
+            echo "FREEZE=true" >> $GITHUB_ENV
+          else
+            echo "No feature freeze active."
+            echo "FREEZE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Validate commit messages
+        if: env.FREEZE == 'true'
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            TITLE="${{ github.event.pull_request.title }}"
+            if [[ ! "$TITLE" =~ ^bugfix: ]]; then
+              echo "❌ Feature freeze is active. PR title must start with 'bugfix:'"
+              echo "   Got: $TITLE"
+              exit 1
+            fi
+          else
+            # For direct pushes, check all new commit messages
+            COMMITS=$(git log --format="%s" ${{ github.event.before }}..${{ github.event.after }} 2>/dev/null || echo "")
+            if [ -z "$COMMITS" ]; then
+              exit 0
+            fi
+            FAILED=false
+            while IFS= read -r msg; do
+              if [[ ! "$msg" =~ ^bugfix: ]]; then
+                echo "❌ Commit not allowed during feature freeze: $msg"
+                FAILED=true
+              fi
+            done <<< "$COMMITS"
+            if [ "$FAILED" == "true" ]; then
+              echo ""
+              echo "🧊 Feature freeze is active (last 7 days of the month)."
+              echo "All commits must be prefixed with 'bugfix:'"
+              exit 1
+            fi
+          fi
+
+      - name: Freeze passed
+        if: env.FREEZE == 'true'
+        run: echo "✅ All commits/PR comply with feature freeze policy."
+
