@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Check if feature freeze is active
         run: |
-          # DEBUG: Simulate being in the last 7 days of the month
+          # DEBUG: Simulate being in the last 7 days of the month 
           # Remove the next line to use real date
           DAY=25
           #DAY=$(date +%d)
