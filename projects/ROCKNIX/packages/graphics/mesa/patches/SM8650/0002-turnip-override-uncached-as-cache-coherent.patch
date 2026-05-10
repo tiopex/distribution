@@ -1,0 +1,147 @@
+From 103887766cb288a7ec097af8c9f774ef6b0e1591 Mon Sep 17 00:00:00 2001
+From: Ryan Houdek <Sonicadvance1@gmail.com>
+Date: Fri, 1 May 2026 13:30:20 -0700
+Subject: [PATCH] turnip: Add an override to uncached memory type
+
+When uncached memory type is used under emulation then most games have a
+significant performance penalty due to accessing the buffer atomically.
+
+Instead when this option is set, it will override uncached buffer
+allocations to instead be cached+coherent if the host supports it. This
+allows the atomic accesses to still be done but not have abysmal
+performance.
+
+Part-of: <https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/41323>
+---
+diff --git a/src/freedreno/vulkan/tu_cmd_buffer.cc b/src/freedreno/vulkan/tu_cmd_buffer.cc
+index 82a7ab3..0c9ab9a 100644
+--- a/src/freedreno/vulkan/tu_cmd_buffer.cc
++++ b/src/freedreno/vulkan/tu_cmd_buffer.cc
+@@ -41,7 +41,10 @@ tu_cmd_buffer_setup_status_tracking(struct tu_device *device)
+       device, NULL, &status_bo, sizeof(enum tu_cmd_buffer_status), 0,
+       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
+          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+-         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
++         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
++         (device->physical_device->preferred_uncached_as_cached_index >= 0 ?
++          VK_MEMORY_PROPERTY_HOST_CACHED_BIT : 0)
++         ,
+       TU_BO_ALLOC_INTERNAL_RESOURCE, NULL, "cmd_buffer_status");
+    if (result != VK_SUCCESS)
+       return NULL;
+diff --git a/src/freedreno/vulkan/tu_device.cc b/src/freedreno/vulkan/tu_device.cc
+index a57dfe5..1ef661f 100644
+--- a/src/freedreno/vulkan/tu_device.cc
++++ b/src/freedreno/vulkan/tu_device.cc
+@@ -1616,6 +1616,7 @@ tu_physical_device_init(struct tu_physical_device *device,
+    device->level1_dcache_size = util_cache_granularity();
+    device->has_cached_non_coherent_memory =
+       device->level1_dcache_size > 0 && !DETECT_ARCH_ARM;
++   device->preferred_uncached_as_cached_index = -1;
+ 
+    device->memory.type_count = 1;
+    device->memory.types[0] =
+@@ -1629,6 +1630,11 @@ tu_physical_device_init(struct tu_physical_device *device,
+          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+          VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
++
++      if (instance->override_uncached_as_cache_coherent) {
++          /* Retain this memory type index to override later. */
++          device->preferred_uncached_as_cached_index = device->memory.type_count;
++      }
+       device->memory.type_count++;
+    }
+ 
+@@ -1775,6 +1781,7 @@ static const driOptionDescription tu_dri_options[] = {
+       DRI_CONF_TU_USE_TEX_COORD_ROUND_NEAREST_EVEN_MODE(false)
+       DRI_CONF_TU_IGNORE_FRAG_DEPTH_DIRECTION(false)
+       DRI_CONF_TU_ENABLE_SOFTFLOAT32(false)
++      DRI_CONF_TU_OVERRIDE_UNCACHED_AS_CACHE_COHERENT(false)
+    DRI_CONF_SECTION_END
+ };
+ 
+@@ -1805,6 +1812,8 @@ tu_init_dri_options(struct tu_instance *instance)
+          driQueryOptionb(&instance->dri_options, "tu_ignore_frag_depth_direction");
+    instance->enable_softfloat32 =
+          driQueryOptionb(&instance->dri_options, "tu_enable_softfloat32");
++   instance->override_uncached_as_cache_coherent =
++         driQueryOptionb(&instance->dri_options, "tu_override_uncached_as_cache_coherent");
+ }
+ 
+ static uint32_t instance_count = 0;
+diff --git a/src/freedreno/vulkan/tu_device.h b/src/freedreno/vulkan/tu_device.h
+index 66d2874..d5bdfbe 100644
+--- a/src/freedreno/vulkan/tu_device.h
++++ b/src/freedreno/vulkan/tu_device.h
+@@ -134,6 +134,10 @@ struct tu_physical_device
+ 
+    bool has_cached_coherent_memory;
+    bool has_cached_non_coherent_memory;
++   /* Index for device local, host-coherent, host-cached memory.
++    * Only set to positive index when overwriting device-local, uncached memory
++    */
++   int32_t preferred_uncached_as_cached_index;
+    uintptr_t level1_dcache_size;
+ 
+    struct fdl_ubwc_config ubwc_config;
+@@ -228,6 +232,11 @@ struct tu_instance
+     * However we don't want native Vulkan apps using this.
+     */
+    bool enable_softfloat32;
++
++   /* When enabled, replaces uncached+host_visible allocations
++    * with cached+coherent+host_visible when the hardware supports it.
++    */
++   bool override_uncached_as_cache_coherent;
+ };
+ VK_DEFINE_HANDLE_CASTS(tu_instance, vk.base, VkInstance,
+                        VK_OBJECT_TYPE_INSTANCE)
+diff --git a/src/freedreno/vulkan/tu_knl.cc b/src/freedreno/vulkan/tu_knl.cc
+index bd64af9..37ddba5 100644
+--- a/src/freedreno/vulkan/tu_knl.cc
++++ b/src/freedreno/vulkan/tu_knl.cc
+@@ -45,6 +45,26 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
+ 
+    size = align64(size, os_page_size);
+ 
++   const VkMemoryPropertyFlags replace_flags_mask =
++      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
++      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
++      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
++      VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
++
++   const VkMemoryPropertyFlags replace_flags_match =
++      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT |
++      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
++      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
++
++   if (dev->physical_device->preferred_uncached_as_cached_index >= 0 &&
++      (mem_property & replace_flags_mask) == replace_flags_match) {
++      /* Override the memory type if the requested type was uncached, only replacing
++       * if the device supports cached-coherent memory type.
++       */
++      mem_property =
++          dev->physical_device->memory.types[dev->physical_device->preferred_uncached_as_cached_index];
++   }
++
+    VkResult result =
+       dev->instance->knl->bo_init(dev, base, out_bo, size, client_iova,
+                                   mem_property, flags, lazy_vma, name);
+diff --git a/src/util/driconf.h b/src/util/driconf.h
+index 9addbb7..07b8106 100644
+--- a/src/util/driconf.h
++++ b/src/util/driconf.h
+@@ -666,7 +666,11 @@
+ 
+ #define DRI_CONF_TU_ENABLE_SOFTFLOAT32(def) \
+    DRI_CONF_OPT_B(tu_enable_softfloat32, def, \
+-                  "Enable softfloat emulation for float32 denormals")
++                   "Enable softfloat emulation for float32 denormals")
++
++#define DRI_CONF_TU_OVERRIDE_UNCACHED_AS_CACHE_COHERENT(def) \
++   DRI_CONF_OPT_B(tu_override_uncached_as_cache_coherent, def, \
++                  "Replaces uncached-host allocations with cached-coherent-host when possible. Only useful under x86 emulation where memory accesses tend to be atomic")
+ 
+ /**
+  * \brief Honeykrisp specific configuration options

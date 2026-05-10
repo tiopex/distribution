@@ -119,4 +119,13 @@ post_makeinstall_target() {
   if [ "${DEVICE}" = "S922X" ]; then
     rm -f ${INSTALL}/usr/lib/libvulkan_panfrost.so ${INSTALL}/usr/share/vulkan/icd.d/panfrost_icd.*.json
   fi
+
+  # Install drirc config to enable turnip uncached-as-cache-coherent override
+  # for Qualcomm platforms running under x86 emulation (FEX)
+  case "${DEVICE}" in
+    SM8250|SM8550|SM8650|SM8750)
+      mkdir -p ${INSTALL}/usr/share/drirc.d
+      cp -v $(get_pkg_directory mesa)/config/01-rocknix-turnip.conf ${INSTALL}/usr/share/drirc.d/
+      ;;
+  esac
 }
