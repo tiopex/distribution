@@ -1,131 +1,63 @@
 # SPDX-License-Identifier: GPL-2.0
-# Copyright (C) 2017-present Team LibreELEC (https://libreelec.tv)
+# Copyright (C) 2025-present ROCKNIX (https://github.com/ROCKNIX)
 
 PKG_NAME="rust"
-PKG_VERSION="1.94.1"
-PKG_SHA256="4c142a625f12e3cdf716c68ae19f4f60d98ad1482627b08579b15838e95ad514"
+PKG_VERSION="1.94.0"
 PKG_LICENSE="MIT"
 PKG_SITE="https://www.rust-lang.org"
-PKG_URL="https://static.rust-lang.org/dist/rustc-${PKG_VERSION}-src.tar.gz"
-PKG_DEPENDS_HOST="toolchain llvm:host"
-PKG_DEPENDS_UNPACK="rustc-snapshot rust-std-snapshot cargo-snapshot"
+PKG_DEPENDS_HOST="toolchain"
 PKG_LONGDESC="A systems programming language that prevents segfaults, and guarantees thread safety."
 PKG_TOOLCHAIN="manual"
 
-pre_configure_host() {
-  "$(get_build_dir rustc-snapshot)/install.sh" --prefix="${PKG_BUILD}/rust-snapshot" --disable-ldconfig
-  "$(get_build_dir rust-std-snapshot)/install.sh" --prefix="${PKG_BUILD}/rust-snapshot" --disable-ldconfig
-  "$(get_build_dir cargo-snapshot)/install.sh" --prefix="${PKG_BUILD}/rust-snapshot" --disable-ldconfig
-}
+case "${MACHINE_HARDWARE_NAME}" in
+  "aarch64")
+    PKG_SHA256="c6fd6d1c925ed986df3b2c0b89bbc90ce15afb62e4d522a054e7d50c856b3c1a"
+    PKG_URL="https://static.rust-lang.org/dist/rust-${PKG_VERSION}-${MACHINE_HARDWARE_NAME}-unknown-linux-gnu.tar.xz"
+    ;;
+  "arm")
+    PKG_SHA256="4a66d45bbc4b2e9c6aaaa62807da8e054340010b2d763c28ed2351c7a2a36972"
+    PKG_URL="https://static.rust-lang.org/dist/rust-${PKG_VERSION}-${MACHINE_HARDWARE_NAME}-unknown-linux-gnueabihf.tar.xz"
+    ;;
+  "x86_64")
+    PKG_SHA256="e8fa4185f3ef6ae32725ff638b1ecdbff28f5d651dc0b3111e2539350d03b15a"
+    PKG_URL="https://static.rust-lang.org/dist/rust-${PKG_VERSION}-${MACHINE_HARDWARE_NAME}-unknown-linux-gnu.tar.xz"
+    ;;
+esac
+PKG_SOURCE_NAME="rust_${PKG_VERSION}_${MACHINE_HARDWARE_NAME}.tar.xz"
 
-configure_host() {
+_install_rust_std() {
+  local target="$1" hash="$2"
+  local tar="${PKG_BUILD}/rust-std-${target}.tar.xz"
+  local url="https://static.rust-lang.org/dist/rust-std-${PKG_VERSION}-${target}.tar.xz"
 
-  mkdir -p ${PKG_BUILD}/targets
-
-  case "${TARGET_ARCH}" in
-    "arm")
-      # the arm target is special because we specify the subarch. ie armv8a
-      cp -a ${PKG_DIR}/targets/arm-libreelec-linux-gnueabihf.json ${PKG_BUILD}/targets/${TARGET_NAME}.json
-      ;;
-    "aarch64" | "x86_64")
-      cp -a ${PKG_DIR}/targets/${TARGET_NAME}.json ${PKG_BUILD}/targets/${TARGET_NAME}.json
-      ;;
-  esac
-
-  cat >${PKG_BUILD}/config.toml  <<END
-change-id = 148671
-
-[llvm]
-download-ci-llvm = false
-
-[target.${TARGET_NAME}]
-llvm-config = "${TOOLCHAIN}/bin/llvm-config"
-cxx = "${TARGET_PREFIX}g++"
-cc = "${TARGET_PREFIX}gcc"
-
-[target.${RUST_HOST}]
-llvm-config = "${TOOLCHAIN}/bin/llvm-config"
-cxx = "${CXX}"
-cc = "${CC}"
-
-[rust]
-rpath = true
-channel = "stable"
-codegen-tests = false
-optimize = true
-download-rustc = false
-
-[build]
-submodules = false
-docs = false
-profiler = true
-vendor = true
-
-rustc = "${PKG_BUILD}/rust-snapshot/bin/rustc"
-cargo = "${PKG_BUILD}/rust-snapshot/bin/cargo"
-
-target = [
-  "${TARGET_NAME}",
-  "${RUST_HOST}"
-]
-
-host = [
-  "${RUST_HOST}"
-]
-
-build = "${RUST_HOST}"
-
-[install]
-prefix = "${TOOLCHAIN}"
-bindir = "${TOOLCHAIN}/bin"
-libdir = "${TOOLCHAIN}/lib"
-datadir = "${TOOLCHAIN}/share"
-mandir = "${TOOLCHAIN}/share/man"
-
-END
-
-  CARGO_HOME="${PKG_BUILD}/cargo_home"
-  mkdir -p "${CARGO_HOME}"
-
-  cat >${CARGO_HOME}/config.toml <<END
-[target.${TARGET_NAME}]
-linker = "${TARGET_PREFIX}gcc"
-
-[target.${RUST_HOST}]
-linker = "${CC}"
-rustflags = ["-C", "link-arg=-Wl,-rpath,${TOOLCHAIN}/lib"]
-
-[build]
-target-dir = "${PKG_BUILD}/target"
-
-[term]
-progress.when = 'always'
-progress.width = 80
-
-END
-}
-
-make_host() {
-  cd ${PKG_BUILD}
-
-  unset CFLAGS
-  unset CXXFLAGS
-  unset CPPFLAGS
-  unset LDFLAGS
-
-  export RUST_TARGET_PATH="${PKG_BUILD}/targets/"
-  export HOST_CMAKE="${TOOLCHAIN}/bin/cmake"
-  export HOST_CMAKE_TOOLCHAIN_FILE="${CMAKE_CONF}"
-
-  python3 src/bootstrap/bootstrap.py -j ${CONCURRENCY_MAKE_LEVEL} build --stage 2 --verbose
+  [ -f "${tar}" ] || curl -Lo "${tar}" "${url}"
+  echo "${hash}  ${tar}" | sha256sum -c -
+  mkdir -p "${PKG_BUILD}/rust-std-${target}"
+  tar -xf "${tar}" -C "${PKG_BUILD}/rust-std-${target}" --strip-components=1
+  "${PKG_BUILD}/rust-std-${target}/install.sh" --prefix="${TOOLCHAIN}" --disable-ldconfig
 }
 
 makeinstall_host() {
-  mkdir -p ${TOOLCHAIN}/bin
-    cp -a build/${RUST_HOST}/stage2/bin/* ${TOOLCHAIN}/bin
-
-  mkdir -p ${TOOLCHAIN}/lib/rustlib
-    cp -a build/${RUST_HOST}/stage2/lib/* ${TOOLCHAIN}/lib
-
-    cp -a ${PKG_BUILD}/targets/*.json ${TOOLCHAIN}/lib/rustlib/
+  "${PKG_BUILD}/install.sh" --prefix="${TOOLCHAIN}" --disable-ldconfig
+  case "${MACHINE_HARDWARE_NAME}" in
+    "x86_64")
+      _install_rust_std "aarch64-unknown-linux-gnu" \
+        "c781b3ef4fefa5508fbe05820eddc95e46351d905a30921cc020febd9c596a2e"
+      _install_rust_std "arm-unknown-linux-gnueabihf" \
+        "d5db943974fe05306ae43d100b0b7f3540108b93ef52de670675ce966af8a0fd"
+      ;;
+    "aarch64")
+      _install_rust_std "x86_64-unknown-linux-gnu" \
+        "dd33653107c36e040082050d9e547e64dac5b456ba74069430d838c00c189a05"
+      _install_rust_std "arm-unknown-linux-gnueabihf" \
+        "d5db943974fe05306ae43d100b0b7f3540108b93ef52de670675ce966af8a0fd"
+      ;;
+    "arm")
+      _install_rust_std "x86_64-unknown-linux-gnu" \
+        "dd33653107c36e040082050d9e547e64dac5b456ba74069430d838c00c189a05"
+      _install_rust_std "aarch64-unknown-linux-gnu" \
+        "c781b3ef4fefa5508fbe05820eddc95e46351d905a30921cc020febd9c596a2e"
+      ;;
+  esac
 }
+

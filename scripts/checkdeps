@@ -61,7 +61,11 @@ dep_map=(
   [curl]=curl
   [diff]=diffutils
   [gawk]=gawk
-  [gcc]=gcc
+  [cpp]=cpp
+  [gcc]=gcc-12
+  [g++]=g++-12
+  [gcc-12]=gcc-12
+  [g++-12]=g++-12
   [gperf]=gperf
   [gzip]=gzip
   [file]=file
@@ -172,6 +176,8 @@ case "${DISTRO}" in
       ;;
     arch|endeavouros)
       dep_map+=(
+        [g++]=g++-12
+        [gcc]=gcc-12
         [g++-12]=g++-12
         [gcc-12]=gcc-12
         [mkfontscale]=xfonts-utils
@@ -213,6 +219,8 @@ case "${DISTRO}" in
       ;;
     *)
       dep_map+=(
+        [g++]=g++-12
+        [gcc]=gcc-12
         [g++-12]=g++-12
         [gcc-12]=gcc-12
         [mkfontscale]=xfonts-utils
