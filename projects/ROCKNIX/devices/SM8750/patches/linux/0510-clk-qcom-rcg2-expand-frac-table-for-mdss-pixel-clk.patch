@@ -15,10 +15,10 @@ Signed-off-by: Pengyu Luo <mitltlatltl@gmail.com>
  1 file changed, 2 insertions(+)
 
 diff --git a/drivers/clk/qcom/clk-rcg2.c b/drivers/clk/qcom/clk-rcg2.c
-index fc696b66cc..6064a0e17d 100644
+index a18d2b9319670..6064a0e17d 100644
 --- a/drivers/clk/qcom/clk-rcg2.c
 +++ b/drivers/clk/qcom/clk-rcg2.c
-@@ -1117,6 +1117,8 @@ static const struct frac_entry frac_table_pixel[] = {
+@@ -1148,6 +1148,8 @@ static const struct frac_entry frac_table_pixel[] = {
  	{ 4, 9 },
  	{ 1, 1 },
  	{ 2, 3 },

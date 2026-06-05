@@ -1,0 +1,71 @@
+diff --git a/drivers/gpu/drm/msm/dsi/dsi_host.c b/drivers/gpu/drm/msm/dsi/dsi_host.c
+index 111111111..222222222 100644
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -1742,6 +1742,10 @@
+ 		return -EINVAL;
+ 
+ 	mutex_lock(&msm_host->cmd_mutex);
++	if (!msm_host->power_on) {
++		mutex_unlock(&msm_host->cmd_mutex);
++		return -EINVAL;
++	}
+ 	ret = msm_dsi_manager_cmd_xfer(msm_host->id, msg);
+ 	mutex_unlock(&msm_host->cmd_mutex);
+ 
+@@ -2127,6 +2131,7 @@
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+ 	const struct msm_dsi_cfg_handler *cfg_hnd = msm_host->cfg_hnd;
++	bool powered = msm_host->power_on;
+ 
+ 	/* TODO: make sure dsi_cmd_mdp is idle.
+ 	 * Since DSI6G v1.2.0, we can set DSI_TRIG_CTRL.BLOCK_DMA_WITHIN_FRAME
+@@ -2139,7 +2144,8 @@
+ 	 * mdp clock need to be enabled to receive dsi interrupt
+ 	 */
+ 	pm_runtime_get_sync(&msm_host->pdev->dev);
+-	cfg_hnd->ops->link_clk_set_rate(msm_host);
++	if (!powered)
++		cfg_hnd->ops->link_clk_set_rate(msm_host);
+ 	cfg_hnd->ops->link_clk_enable(msm_host);
+ 
+ 	/* TODO: vote for bus bandwidth */
+@@ -2162,6 +2168,7 @@
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+ 	const struct msm_dsi_cfg_handler *cfg_hnd = msm_host->cfg_hnd;
++	bool powered = msm_host->power_on;
+ 
+ 	dsi_intr_ctrl(msm_host, DSI_IRQ_MASK_CMD_DMA_DONE, 0);
+ 	dsi_write(msm_host, REG_DSI_CTRL, msm_host->dma_cmd_ctrl_restore);
+@@ -2171,7 +2178,8 @@
+ 
+ 	/* TODO: unvote for bus bandwidth */
+ 
+-	cfg_hnd->ops->link_clk_disable(msm_host);
++	if (!powered)
++		cfg_hnd->ops->link_clk_disable(msm_host);
+ 	pm_runtime_put(&msm_host->pdev->dev);
+ }
+ 
+@@ -2521,6 +2529,10 @@
+ 		goto unlock_ret;
+ 	}
+ 
++	mutex_lock(&msm_host->cmd_mutex);
++	msm_host->power_on = false;
++	mutex_unlock(&msm_host->cmd_mutex);
++
+ 	dsi_ctrl_disable(msm_host);
+ 
+ 	pinctrl_pm_select_sleep_state(&msm_host->pdev->dev);
+@@ -2535,8 +2547,6 @@
+ 
+ 	DBG("-");
+ 
+-	msm_host->power_on = false;
+-
+ unlock_ret:
+ 	mutex_unlock(&msm_host->dev_mutex);
+ 	return 0;
