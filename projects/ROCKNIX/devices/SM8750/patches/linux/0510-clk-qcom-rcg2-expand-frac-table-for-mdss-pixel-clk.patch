@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Pengyu Luo <mitltlatltl@gmail.com>
+Date: Sat, 21 Mar 2026 00:00:00 +0800
+Subject: [PATCH] clk: qcom: rcg2: Expand frac table for mdss pixel clock
+
+Some DSI panel clock combinations require pixel divider ratios missing
+from frac_table_pixel[], causing clk_pixel_set_rate() to fail and leave
+a stale RCG configuration.
+
+Add 16/35 and 4/15 ratios supported by downstream Qualcomm drivers.
+
+Signed-off-by: Pengyu Luo <mitltlatltl@gmail.com>
+---
+ drivers/clk/qcom/clk-rcg2.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/clk/qcom/clk-rcg2.c b/drivers/clk/qcom/clk-rcg2.c
+index fc696b66cc..6064a0e17d 100644
+--- a/drivers/clk/qcom/clk-rcg2.c
++++ b/drivers/clk/qcom/clk-rcg2.c
+@@ -1117,6 +1117,8 @@ static const struct frac_entry frac_table_pixel[] = {
+ 	{ 4, 9 },
+ 	{ 1, 1 },
+ 	{ 2, 3 },
++	{ 16, 35 },
++	{ 4, 15 },
+ 	{ }
+ };
+ 
+-- 
+2.53.0
