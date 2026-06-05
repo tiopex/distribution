@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Petr Hodina <petr.hodina@protonmail.com>
+Date: Fri, 12 Dec 2025 00:00:00 +0000
+Subject: [PATCH] clk: qcom: rcg2: Fix pixel clock set_rate while RCG is gated
+
+Updating M/N/D registers on a gated RCG and toggling the UPDATE bit can
+fail with "rcg didn't update its configuration", leaving disp_cc_mdss_pclk0
+misconfigured during msm_dsi_host_power_on().
+
+If the clock is disabled, write the configuration directly without hitting
+UPDATE.
+
+Signed-off-by: Petr Hodina <petr.hodina@protonmail.com>
+Signed-off-by: David Heidelberg <david@ixit.cz>
+---
+ drivers/clk/qcom/clk-rcg2.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/clk/qcom/clk-rcg2.c b/drivers/clk/qcom/clk-rcg2.c
+index e18cb8807d735..a18d2b9319670 100644
+--- a/drivers/clk/qcom/clk-rcg2.c
++++ b/drivers/clk/qcom/clk-rcg2.c
+@@ -1182,6 +1182,24 @@ static int clk_pixel_set_rate(struct clk_hw *hw, unsigned long rate,
+ 		f.m = frac->num;
+ 		f.n = frac->den;
+ 
++		/*
++		 * If clock is disabled, update the M, N and D registers and
++		 * don't hit the update bit.
++		 */
++		if (!clk_hw_is_enabled(hw)) {
++			int ret;
++
++			ret = regmap_read(rcg->clkr.regmap, RCG_CFG_OFFSET(rcg), &cfg);
++			if (ret)
++				return ret;
++
++			ret = __clk_rcg2_configure(rcg, &f, &cfg);
++			if (ret)
++				return ret;
++
++			return regmap_write(rcg->clkr.regmap, RCG_CFG_OFFSET(rcg), cfg);
++		}
++
+ 		return clk_rcg2_configure(rcg, &f);
+ 	}
+ 	return -EINVAL;
+-- 
+2.51.0
