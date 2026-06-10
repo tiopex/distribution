@@ -11,6 +11,11 @@ on:
         required: false
         default: false
         type: boolean
+      release_notes_test:
+        description: 'Skip build jobs and only generate release note preview'
+        required: false
+        default: false
+        type: boolean
       RK3326:
         description: 'RK3326'
         required: false
@@ -84,6 +89,7 @@ jobs:
     outputs:
       NIGHTLY: ${{ steps.set-release-type.outputs.NIGHTLY }}
       OFFICIAL: ${{ steps.set-release-type.outputs.OFFICIAL }}
+      RELEASE_NOTES_TEST: ${{ steps.set-release-type.outputs.RELEASE_NOTES_TEST }}
       OWNER_LC: ${{ steps.set-envs.outputs.OWNER_OUTPUT }}
       matrix: ${{ steps.generate.outputs.matrix }}
     steps:
@@ -97,13 +103,20 @@ jobs:
       - name: Determine release type
         id: set-release-type
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.release }}" == "true" ]]; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.release_notes_test }}" == "true" ]]; then
+            echo "RELEASE_NOTES_TEST=yes" >> $GITHUB_OUTPUT
+            echo "OFFICIAL=yes" >> $GITHUB_OUTPUT
+            echo "NIGHTLY=no" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.release }}" == "true" ]]; then
+            echo "RELEASE_NOTES_TEST=no" >> $GITHUB_OUTPUT
             echo "OFFICIAL=yes" >> $GITHUB_OUTPUT
             echo "NIGHTLY=no" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "0 0 1 * *" ]]; then
+            echo "RELEASE_NOTES_TEST=no" >> $GITHUB_OUTPUT
             echo "OFFICIAL=yes" >> $GITHUB_OUTPUT
             echo "NIGHTLY=no" >> $GITHUB_OUTPUT
           else
+            echo "RELEASE_NOTES_TEST=no" >> $GITHUB_OUTPUT
             echo "OFFICIAL=no" >> $GITHUB_OUTPUT
             echo "NIGHTLY=yes" >> $GITHUB_OUTPUT
           fi
@@ -160,7 +173,7 @@ jobs:
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
   build-docker:
-    if: github.event_name != 'schedule' || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')
+    if: (github.event_name != 'schedule' || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')) && needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes'
     name: Docker
     needs: set-envs
     uses: ./.github/workflows/build-docker-image.yml
@@ -168,7 +181,7 @@ jobs:
       OWNER_LC: ${{ needs.set-envs.outputs.OWNER_LC }}
 
   build-devices:
-    if: (github.event_name != 'schedule') || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')
+    if: ((github.event_name != 'schedule') || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')) && needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes'
     name: Build Devices
     needs:
       - set-envs
@@ -187,8 +200,10 @@ jobs:
       OFFICIAL: ${{ needs.set-envs.outputs.OFFICIAL }}
 
   rerun-failed-jobs:
-    if: always() && !cancelled() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && fromJSON(github.run_attempt) < 3 && github.ref_name == 'next' && (github.event_name != 'schedule' || github.repository == 'ROCKNIX/distribution')
-    needs: build-devices
+    if: always() && !cancelled() && needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes' && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && fromJSON(github.run_attempt) < 3 && github.ref_name == 'next' && (github.event_name != 'schedule' || github.repository == 'ROCKNIX/distribution')
+    needs:
+      - set-envs
+      - build-devices
     runs-on: ubuntu-24.04
     steps:
       - env:
@@ -197,9 +212,11 @@ jobs:
         run: gh workflow run retry-workflow.yml -F run_id=${{ github.run_id }}
 
   release-nightly:
-     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'ROCKNIX' && needs.set-envs.outputs.NIGHTLY == 'yes' && github.event_name != 'pull_request' }}
+     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'ROCKNIX' && needs.set-envs.outputs.NIGHTLY == 'yes' && github.event_name != 'pull_request' && needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes' }}
      name: Release nightly
-     needs: build-devices
+     needs:
+       - set-envs
+       - build-devices
      runs-on: ubuntu-24.04
      steps:
      - name: debug needs
@@ -275,9 +292,11 @@ jobs:
          done
 
   release-official:
-    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'ROCKNIX' && needs.set-envs.outputs.OFFICIAL == 'yes' }}
+    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'tiopex' && needs.set-envs.outputs.OFFICIAL == 'yes' }}
     name: Release official
-    needs: build-devices
+    needs:
+      - set-envs
+      - build-devices
     runs-on: ubuntu-24.04
     steps:
       - name: Maximize build space
@@ -288,11 +307,13 @@ jobs:
         with:
           fetch-depth: 0
       - name: Download artifacts
+        if: needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes'
         uses: actions/download-artifact@v8
         with:
           pattern: ROCKNIX-image*
           merge-multiple: true
       - name: Download artifacts
+        if: needs.set-envs.outputs.RELEASE_NOTES_TEST != 'yes'
         uses: actions/download-artifact@v8
         with:
           pattern: ROCKNIX-update*
@@ -325,4 +346,10 @@ jobs:
             --notes-file release-body.md \
             --draft \
             --latest
+      - name: Upload release note preview
+        if: needs.set-envs.outputs.RELEASE_NOTES_TEST == 'yes'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-note-preview-${{ env.DATE }}
+          path: release-body.md
 

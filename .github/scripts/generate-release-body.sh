@@ -285,9 +285,11 @@ if [ -n "${LAST_TAG}" ]; then
 
   tmpdir=$(mktemp -d)
 
-  while IFS= read -r line; do
-    [[ -z "$line" ]] && continue
-    prefix=$(echo "$line" | sed 's/^- //' | cut -d: -f1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
+  while IFS=$'\x1f' read -r subject author commit_hash; do
+    [[ -z "$subject" ]] && continue
+    short_hash="${commit_hash:0:7}"
+    line="- ${subject} (${author}) ([${short_hash}](https://github.com/ROCKNIX/distribution/commit/${commit_hash}))"
+    prefix=$(echo "$subject" | cut -d: -f1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
     category="🔩 Other"
     case "$prefix" in
       # Kernel & Boot
@@ -323,7 +325,7 @@ if [ -n "${LAST_TAG}" ]; then
     esac
     echo "$line" >> "${tmpdir}/${category}"
   done < <(
-    git log --max-count=100 --format="- %s (by %an)" "${LAST_TAG}..HEAD" 2>/dev/null \
+    git log --max-count=100 --format="%s%x1f%an%x1f%H" "${LAST_TAG}..HEAD" 2>/dev/null \
       | grep -v "Merge pull request" \
       | grep -v "^$"
   )
