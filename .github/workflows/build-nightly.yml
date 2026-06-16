@@ -340,11 +340,11 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
+          echo test > ROCKNIX-test.txt
           gh release create "${{ env.DATE }}" ROCKNIX-* \
             --target "${{ github.sha }}" \
             --title "${{ env.DATE }}" \
             --notes-file release-body.md \
-            --draft \
             --latest
       - name: Upload release note preview
         if: needs.set-envs.outputs.RELEASE_NOTES_TEST == 'yes'

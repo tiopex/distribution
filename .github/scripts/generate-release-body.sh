@@ -281,6 +281,7 @@ if [ -n "${LAST_TAG}" ]; then
     "🔧 System"
     "📚 Documentation"
     "🔩 Other"
+    "↩️ Reverts"
   )
 
   tmpdir=$(mktemp -d)
@@ -289,14 +290,18 @@ if [ -n "${LAST_TAG}" ]; then
     [[ -z "$subject" ]] && continue
     short_hash="${commit_hash:0:7}"
     line="- ${subject} (${author}) ([${short_hash}](https://github.com/ROCKNIX/distribution/commit/${commit_hash}))"
-    prefix=$(echo "$subject" | cut -d: -f1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
     category="🔩 Other"
+    if [[ "$subject" == *:* ]]; then
+    prefix=$(echo "$subject" | cut -d: -f1 | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9_-]//g')
     case "$prefix" in
+      # Reverts
+      revert*)
+        category="↩️ Reverts" ;;
       # Kernel & Boot
-      linux|u-boot*|kernel*|dtc|dt-overlays|rkbin|atf|mkbootimg|grub|syslinux|amlogic-boot-fip|exynos-boot-fip|crust|bootloader|installer|qcom-abl|rocknix-abl|device-tree-overlays|mali-bifrost|rocknix-joypad|dtbocfg|generic-dsi|ap6256-firmware|ap6611s-firmware|esp8089-firmware|extra-firmware|g610-mali-csffw|ibt-firmware|iwlwifi-firmware|kernel-firmware|rtl8188fu-firmware|rtl8812au|rtl8814au|rtl8821au|rtl8821cu|rtl8851bu|rtl88x2bu|rtw88|arm-efi|patches|linux-drivers|linux-firmware)
+      linux|u-boot*|kernel*|dtc|dt-overlays|rkbin|atf|mkbootimg|grub|syslinux|amlogic-boot-fip|exynos-boot-fip|crust|bootloader|installer|qcom-abl|rocknix-abl|device-tree-overlays|mali-bifrost|rocknix-joypad|dtbocfg|generic-dsi|ap6256-firmware|ap6611s-firmware|esp8089-firmware|extra-firmware|g610-mali-csffw|ibt-firmware|iwlwifi-firmware|kernel-firmware|rtl8188fu-firmware|rtl8812au|rtl8814au|rtl8821au|rtl8821cu|rtl8851bu|rtl88x2bu|rtw88|arm-efi|patches|linux-drivers|linux-firmware|abl)
         category="🐧 Kernel & Boot" ;;
       # Emulators & Frontend
-      *-sa|*-lr|retroarch|emulationstation|gamecontrollerdb|rocknix-systems|hypseus*|openbor*|pico-8*|heroic*|amiberry*|mednafen*|steam*|box64|box86|fex-emu|wine|portmaster*|moonlight*|lowerdeck*|themes*|es-themes*|oga*|m8c*)
+      *-sa|*-lr|retroarch|emulationstation|gamecontrollerdb|rocknix-systems|hypseus*|openbor*|pico-8*|heroic*|amiberry*|mednafen*|steam*|box64|box86|fex-emu|wine|portmaster*|moonlight*|lowerdeck*|themes*|es-themes*|oga*|m8c*|supersnes9x)
         category="🎮 Emulators & Frontend" ;;
       # Audio — before Graphics to avoid sdl2* swallowing sdl2_mixer
       pipewire|wireplumber|alsa*|pulseaudio|opus|flac|libvorbis|libsndfile|wavpack|sbc|speex*|openal*|fdk-aac|ldacbt*|libldac|fluidsynth|libopenmpt|soxr|libogg|lame|libfreeaptx|libmodplug|sidplay*|taglib|espeak*|sdl2_mixer|libao|sndio|libxmp)
@@ -308,10 +313,10 @@ if [ -n "${LAST_TAG}" ]; then
       ffmpeg|libva|dav1d|aom|libass|libdvd*|libbluray|bento4|libbdplus|libmpeg2|libvdpau|rtmpdump|zvbi|nvidia-vaapi-driver|nv-codec-headers|media-driver|intel-vaapi-driver|libudfread|libaacs|gmmlib|mpv|vlc|gstreamer|libvpx|libplacebo|gmu|libdvbpsi|opusfile|rkmpp)
         category="📦 Multimedia" ;;
       # Network
-      connman|iwd|networkmanager|bluez|openssh|samba|nfs*|avahi|syncthing|rclone|tailscale|zerotier*|wireguard*|openvpn|sixaxis|iw|iptables|wsdd2|wireless-regdb|libpcap|enet|libndp|libnl|libtirpc|libssh|nss-mdns|ap6611s|simple-http-server|fping|speedtest-cli|curl|libslirp)
+      connman|iwd|networkmanager|bluez|openssh|samba|nfs*|avahi|syncthing|rclone|tailscale|zerotier*|wireguard*|openvpn|sixaxis|iw|iptables|wsdd2|wireless-regdb|libpcap|enet|libndp|libnl|libtirpc|libssh|nss-mdns|ap6611s|simple-http-server|fping|speedtest-cli|curl|libslirp|wifi)
         category="🌐 Network" ;;
       # Device Support
-      h700|rk3326|rk3399|rk3566|rk3576|rk3588|s922x|sm6115|sm8250|sm8550|sm8650|sm8750|quirks)
+      h700*|rk3326*|rk3399*|rk3566*|rk3576*|rk3588*|s922x*|sm6115*|sm8250*|sm8550*|sm8650*|sm8750*|quirks)
         category="📱 Device Support" ;;
       # CI & Workflows
       ci|workflows|validate-commit)
@@ -320,13 +325,16 @@ if [ -n "${LAST_TAG}" ]; then
       documentation|docs)
         category="📚 Documentation" ;;
       # System
-      busybox|systemd*|deviceinfo|post-update|updateabl|options|lib32|install*|build|rocknix*|wayland*|libinput|libxkbcommon|weston*|mtdev|dbus|udevil|parted|util-linux|e2fsprogs|dosfstools|kmod|libusb*|usbutils|fuse*|procps*|nano|evrepeat|emmctool|wait-time-sync|inputplumber*|bash|btop|btrfs-progs|drm_tool|gptfdisk|i2c-tools|lsof|nvtop|powerstate|squashfs*|squashfuse|system-utils|umtprd|usb-modeswitch|openssl|libgpg-error|libarchive|libzip|p7zip|gzip|xz|cabextract|expat|icu|jsoncpp|libxml2|libcroco|libiconv|boost|glib|glibc|ncurses|readline|cmake|joyutils|gamepadcalibration|entware|socat|rocknix-splash|coreutils|dialog|freeimage|pyudev|miniupnpc|sound|poppler|grep|file|sleep|avfs|libiio|bin2c|libserialport|swig|llvm|gcc*|go|lua*|nasm|rust*|cargo*|cbindgen|textviewer|dejavu|spleen*|apitrace|strace|at-spi2-atk|at-spi2-core|autostart|config|profiled|sources|sysctld|udevd|bdf2psf|shared-mime-info|ccache|ecm|gnulib|inih|json-glib|libaio|libcom-err|libdatrie|libfmt|libpthread-stubs|libthai|make|patchelf|six|xa|commander|control-gen|device-switch|gamepadtester|jstest-sdl|list-guid|mako-osd|qterminal|sdljoytest|sdltouchtest|compositor|swaywm-env|empty|modules|pyfdt|qemu|synctools)
+      busybox|systemd*|deviceinfo|post-update|updateabl|options|lib32|install*|build|rocknix*|wayland*|libinput|libxkbcommon|weston*|mtdev|dbus|udevil|parted|util-linux|e2fsprogs|dosfstools|kmod|libusb*|usbutils|fuse*|procps*|nano|evrepeat|emmctool|wait-time-sync|inputplumber*|bash|btop|btrfs-progs|drm_tool|gptfdisk|i2c-tools|lsof|nvtop|powerstate|squashfs*|squashfuse|system-utils|umtprd|usb-modeswitch|openssl|libgpg-error|libarchive|libzip|p7zip|gzip|xz|cabextract|expat|icu|jsoncpp|libxml2|libcroco|libiconv|boost|glib|glibc|ncurses|readline|cmake|joyutils|gamepadcalibration|entware|socat|rocknix-splash|coreutils|dialog|freeimage|pyudev|miniupnpc|sound|poppler|grep|file|sleep|avfs|libiio|bin2c|libserialport|swig|llvm|gcc*|go|lua*|nasm|rust*|cargo*|cbindgen|textviewer|dejavu|spleen*|apitrace|strace|at-spi2-atk|at-spi2-core|autostart|config|profiled|sources|sysctld|udevd|bdf2psf|shared-mime-info|ccache|ecm|gnulib|inih|json-glib|libaio|libcom-err|libdatrie|libfmt|libpthread-stubs|libthai|make|patchelf|six|xa|commander|control-gen|device-switch|gamepadtester|jstest-sdl|list-guid|mako-osd|qterminal|sdljoytest|sdltouchtest|compositor|swaywm-env|empty|modules|pyfdt|qemu|synctools|usbgadget|panel|input_sense)
         category="🔧 System" ;;
     esac
+    fi
     echo "$line" >> "${tmpdir}/${category}"
   done < <(
-    git log --max-count=100 --format="%s%x1f%an%x1f%H" "${LAST_TAG}..HEAD" 2>/dev/null \
+    git log --format="%s%x1f%an%x1f%H" "${LAST_TAG}..HEAD" 2>/dev/null \
       | grep -v "Merge pull request" \
+      | grep -v "Merge branch" \
+      | grep -v "Merge remote-tracking branch" \
       | grep -v "^$"
   )
 
