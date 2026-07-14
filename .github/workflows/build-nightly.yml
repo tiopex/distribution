@@ -160,7 +160,8 @@ jobs:
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
 
   build-docker:
-    if: github.event_name != 'schedule' || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')
+    # TEMP TEST: disabled to test changelog only (revert to original if condition)
+    if: false
     name: Docker
     needs: set-envs
     uses: ./.github/workflows/build-docker-image.yml
@@ -168,7 +169,8 @@ jobs:
       OWNER_LC: ${{ needs.set-envs.outputs.OWNER_LC }}
 
   build-devices:
-    if: (github.event_name != 'schedule') || (github.repository == 'ROCKNIX/distribution' && github.ref_name == 'next')
+    # TEMP TEST: disabled to test changelog only (revert to original if condition)
+    if: false
     name: Build Devices
     needs:
       - set-envs
@@ -197,9 +199,10 @@ jobs:
         run: gh workflow run retry-workflow.yml -F run_id=${{ github.run_id }}
 
   release-nightly:
-     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'ROCKNIX' && needs.set-envs.outputs.NIGHTLY == 'yes' && github.event_name != 'pull_request' }}
+     if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'tiopex' && needs.set-envs.outputs.NIGHTLY == 'yes' && github.event_name != 'pull_request' }}
      name: Release nightly
-     needs: build-devices
+     # TEMP TEST: was "needs: build-devices"
+     needs: set-envs
      runs-on: ubuntu-24.04
      steps:
      - name: debug needs
@@ -214,11 +217,13 @@ jobs:
          persist-credentials: false
      - name: Download artifacts
        uses: actions/download-artifact@v8
+       continue-on-error: true  # TEMP TEST: no build artifacts available
        with:
          pattern: ROCKNIX-image*
          merge-multiple: true
      - name: Download artifacts
        uses: actions/download-artifact@v8
+       continue-on-error: true  # TEMP TEST: no build artifacts available
        with:
          pattern: ROCKNIX-update*
          merge-multiple: true
@@ -255,30 +260,32 @@ jobs:
        env:
          GH_TOKEN: ${{ steps.app-token.outputs.token }}
        run: |
-         gh release create "nightly-${{ env.DATE }}" ROCKNIX-* \
+         # TEMP TEST: assets (ROCKNIX-*) removed to test changelog only
+         gh release create "nightly-${{ env.DATE }}" \
            --repo "${{ github.repository_owner }}/distribution-nightly" \
            --title "nightly-${{ env.DATE }}" \
            --notes-file release-notes.md \
            --prerelease
-     - name: Set up SSH sourceforge
-       if: env.new_commits == 'true'
-       run: |
-         mkdir -p ~/.ssh
-         echo "${{ secrets.SF_SSH_KEY }}" > ~/.ssh/id_ed25519
-         chmod 600 ~/.ssh/id_ed25519
-         ssh-keyscan frs.sourceforge.net >> ~/.ssh/known_hosts
-     - name: Upload files sourceforge
-       if: env.new_commits == 'true'
-       run: |
-         FILES=$(find . -type f \( -name "*.tar" -o -name "*.img.gz" -o -name "*.sha256" \))
-         for FILE in $FILES; do
-           rsync -e ssh "$FILE" tiopex@frs.sourceforge.net:/home/frs/project/rocknix/nightly/${{ env.DATE }}/
-         done
+#     - name: Set up SSH sourceforge
+#       if: env.new_commits == 'true'
+#       run: |
+#         mkdir -p ~/.ssh
+#         echo "${{ secrets.SF_SSH_KEY }}" > ~/.ssh/id_ed25519
+#         chmod 600 ~/.ssh/id_ed25519
+#         ssh-keyscan frs.sourceforge.net >> ~/.ssh/known_hosts
+#     - name: Upload files sourceforge
+#       if: env.new_commits == 'true'
+#       run: |
+#         FILES=$(find . -type f \( -name "*.tar" -o -name "*.img.gz" -o -name "*.sha256" \))
+#         for FILE in $FILES; do
+#           rsync -e ssh "$FILE" tiopex@frs.sourceforge.net:/home/frs/project/rocknix/nightly/${{ env.DATE }}/
+#         done
 
   release-official:
-    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'ROCKNIX' && needs.set-envs.outputs.OFFICIAL == 'yes' }}
+    if: ${{ always() && !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.repository_owner == 'tiopex' && needs.set-envs.outputs.OFFICIAL == 'yes' }}
     name: Release official
-    needs: build-devices
+    # TEMP TEST: was "needs: build-devices"
+    needs: set-envs
     runs-on: ubuntu-24.04
     steps:
       - name: Maximize build space
@@ -290,11 +297,13 @@ jobs:
           fetch-depth: 0
       - name: Download artifacts
         uses: actions/download-artifact@v8
+        continue-on-error: true  # TEMP TEST: no build artifacts available
         with:
           pattern: ROCKNIX-image*
           merge-multiple: true
       - name: Download artifacts
         uses: actions/download-artifact@v8
+        continue-on-error: true  # TEMP TEST: no build artifacts available
         with:
           pattern: ROCKNIX-update*
           merge-multiple: true
@@ -320,7 +329,8 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          gh release create "${{ env.DATE }}" ROCKNIX-* \
+          # TEMP TEST: assets (ROCKNIX-*) removed to test changelog only
+          gh release create "${{ env.DATE }}" \
             --target "${{ github.sha }}" \
             --title "${{ env.DATE }}" \
             --notes-file release-body.md \
