@@ -18,8 +18,11 @@ FEX_ARCH_ROOT="${FEX_DATA}/RootFS/ArchLinux"
 FEX_ARCH_USR_LIB="${FEX_ARCH_ROOT}/usr/lib"
 RUNTIME_DIR="${STEAM}/steam-runtime-steamrt-arm64"
 CLIENT_DIR="${STEAM}/steamrtarm64"
-PROTON_NAME="Proton 11.0 (ARM64)"
-PROTON_DIR="${STEAM}/steamapps/common/${PROTON_NAME}"
+PROTON_11_NAME="Proton 11.0 (ARM64)"
+PROTON_11_LINK="Proton11ARM"
+PROTON_EXPERIMENTAL_NAME="Proton Experimental (ARM64)"
+PROTON_EXPERIMENTAL_LINK="ProtonExperimentalARM"
+PROTON_DIR="${STEAM}/steamapps/common"
 RUNTIME_TAR_BASE="https://repo.steampowered.com/steamrt3c/images"
 RUNTIME_TAR_VERSION_URL="${RUNTIME_TAR_BASE}/latest-public-stable.txt"
 STEAM_MANIFEST_URL="https://client-update.fastly.steamstatic.com/steam_client_publicbeta_linuxarm64"
@@ -97,22 +100,23 @@ install_steam_runtime_arm64() {
 }
 
 install_steam_client_arm64() {
-  if [ -d "${CLIENT_DIR}" ]; then
-    log_info "Steam client already exists. Skipping."
-    return 0
-  fi
-  log_info "Downloading and installing Steam client (ARM64)..."
   local manifest target_file zip_path
 
-  manifest=$(curl -fsSL "${STEAM_MANIFEST_URL}" | strings) || die "Failed to fetch Steam manifest."
-  target_file=$(echo "${manifest}" | grep -oP 'bins_linuxarm64_linuxarm64\.zip\.(?!vz\.)[^"]+') || die "Failed to parse target file from manifest."
-  zip_path="${STEAM}/linuxarm64.zip"
+  if [ -d "${CLIENT_DIR}" ]; then
+    log_info "Steam client already exists. Skipping download."
+  else
+    log_info "Downloading and installing Steam client (ARM64)..."
 
-  wget -c -t 5 -O "${zip_path}" "${STEAM_CDN}/${target_file}" || die "Failed to download Steam client zip."
-  unzip -o "${zip_path}" -d "${STEAM}" || die "Failed to extract Steam client."
-  rm -f "${zip_path}"
+    manifest=$(curl -fsSL "${STEAM_MANIFEST_URL}" | strings) || die "Failed to fetch Steam manifest."
+    target_file=$(echo "${manifest}" | grep -oP 'bins_linuxarm64_linuxarm64\.zip\.(?!vz\.)[^"]+') || die "Failed to parse target file from manifest."
+    zip_path="${STEAM}/linuxarm64.zip"
 
-  chmod +x "${CLIENT_DIR}/steam" || die "Failed to make Steam client executable."
+    wget -c -t 5 -O "${zip_path}" "${STEAM_CDN}/${target_file}" || die "Failed to download Steam client zip."
+    unzip -o "${zip_path}" -d "${STEAM}" || die "Failed to extract Steam client."
+    rm -f "${zip_path}"
+  fi
+
+  [ -f "${CLIENT_DIR}/steam" ] && chmod +x "${CLIENT_DIR}/steam" || die "Failed to make Steam client executable."
 
   mkdir -p "${STEAM}/package"
   echo publicbeta > "${STEAM}/package/beta"
@@ -121,14 +125,16 @@ install_steam_client_arm64() {
   ln -sfn "${STEAM}/linuxarm64" "${STEAM_DOT}/sdkarm64" || die "Failed to symlink STEAM_DOT/sdkarm64."
 
   mkdir -p "${STEAM}/compatibilitytools.d/"
-  ln -sfn "${PROTON_DIR}/" "${STEAM}/compatibilitytools.d/Proton11ARM" || die "Failed to symlink Proton11ARM."
+  ln -sfn "${PROTON_DIR}/${PROTON_11_NAME}/" "${STEAM}/compatibilitytools.d/${PROTON_11_LINK}" || die "Failed to symlink Proton11ARM."
+  ln -sfn "${PROTON_DIR}/${PROTON_EXPERIMENTAL_NAME}/" "${STEAM}/compatibilitytools.d/${PROTON_EXPERIMENTAL_LINK}" || die "Failed to symlink ProtonExperimentalARM."
   cp -f "/usr/share/steam/compatibilitytool.vdf" "${STEAM}/compatibilitytools.d/" || die "Failed to copy compatibilitytool.vdf."
 }
 
 install_bundled_proton_files() {
   log_info "Installing bundled Proton files..."
-  mkdir -p "${STEAM_DOT}" "${PROTON_DIR}/"
-  cp -f "/usr/share/steam/toolmanifest.vdf" "${PROTON_DIR}/" || die "Failed to copy toolmanifest.vdf."
+  mkdir -p "${STEAM_DOT}" "${PROTON_DIR}/${PROTON_11_NAME}/" "${PROTON_DIR}/${PROTON_EXPERIMENTAL_NAME}/"
+  cp -f "/usr/share/steam/toolmanifest.vdf" "${PROTON_DIR}/${PROTON_11_NAME}/" || die "Failed to copy toolmanifest.vdf."
+  cp -f "/usr/share/steam/toolmanifest.vdf" "${PROTON_DIR}/${PROTON_EXPERIMENTAL_NAME}/" || die "Failed to copy toolmanifest.vdf."
   cp -f "/usr/share/steam/registry.vdf" "${STEAM_DOT}" || die "Failed to copy registry.vdf."
 }
 

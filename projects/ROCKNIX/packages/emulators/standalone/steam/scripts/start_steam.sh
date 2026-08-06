@@ -123,8 +123,10 @@ steam_dual_screen_end() {
 steam_arm64_binfmt_and_proton_prep() {
   echo 0 >/proc/sys/fs/binfmt_misc/x86_64
   echo 0 >/proc/sys/fs/binfmt_misc/x86
-  mkdir -p "/storage/.local/share/Steam/steamapps/common/Proton 11.0 (ARM64)/"
-  cp -f "/usr/share/steam/toolmanifest.vdf" "/storage/.local/share/Steam/steamapps/common/Proton 11.0 (ARM64)/"
+  for proton_name in "Proton 11.0 (ARM64)" "Proton Experimental (ARM64)"; do
+    mkdir -p "/storage/.local/share/Steam/steamapps/common/${proton_name}/"
+    cp -f "/usr/share/steam/toolmanifest.vdf" "/storage/.local/share/Steam/steamapps/common/${proton_name}/"
+  done
 }
 
 steam_launch_bigpicture() {
