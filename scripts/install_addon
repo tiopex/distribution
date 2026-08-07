@@ -89,4 +89,6 @@ else
   build_msg "CLR_INFO" "*** creating  ${PKG_ADDON_ID} complete ***"
 fi
 
+cleanup_package_sources "${PKG_NAME}"
+
 pkg_lock_status "UNLOCK" "${PKG_NAME}" "packadd" "packed"

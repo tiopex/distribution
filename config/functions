@@ -1245,6 +1245,18 @@ unset_functions() {
   unset -f addon post_install_addon
 }
 
+# Return true when running inside GitHub Actions.
+github_actions_build() {
+  [ "${GITHUB_ACTIONS}" = "true" ] && [ -n "${GITHUB_WORKFLOW}" ]
+}
+
+# p1: package name whose cached sources should be removed.
+cleanup_package_sources() {
+  if github_actions_build && [ -d "${SOURCES}/${1}" ]; then
+    rm -rf "${SOURCES}/${1}"
+  fi
+}
+
 # p1: name of package to be sourced
 source_package() {
   local opwd="${PWD}"

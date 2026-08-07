@@ -187,4 +187,6 @@ release_update_lock
 
 touch ${STAMP}
 
+cleanup_package_sources "${PKG_NAME}"
+
 pkg_lock_status "UNLOCK" "${PKG_NAME}:${TARGET}" "install" "installed"
