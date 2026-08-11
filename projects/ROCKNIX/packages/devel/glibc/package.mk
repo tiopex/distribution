@@ -129,6 +129,27 @@ post_makeinstall_target() {
     cp ${PKG_DIR}/config/host.conf ${INSTALL}/etc
     cp ${PKG_DIR}/config/gai.conf ${INSTALL}/etc
     cp ${PKG_DIR}/config/ld.so.conf ${INSTALL}/etc
+
+  # Keep the standard ld.so cache path (/etc/ld.so.cache) so containers
+  # (pressure-vessel / Steam Runtime) can replace it. Root is read-only,
+  # so point it at writable storage instead of hardcoding LD_SO_CACHE in
+  # ld.so
+  ln -sf /storage/.cache/ld.so.cache ${INSTALL}/etc/ld.so.cache
+
+  # ldconfig atomically renames next to the cache path; writing through the
+  # /etc symlink would create temps on the read-only root. Default writes to
+  # storage, but honor an explicit -C
+  if [ -f ${INSTALL}/usr/bin/ldconfig ]; then
+    mv ${INSTALL}/usr/bin/ldconfig ${INSTALL}/usr/bin/ldconfig.real
+    cat >${INSTALL}/usr/bin/ldconfig <<'EOF'
+#!/bin/sh
+case " $* " in
+  *" -C "*|*" -C"*) exec /usr/bin/ldconfig.real "$@" ;;
+esac
+exec /usr/bin/ldconfig.real -C /storage/.cache/ld.so.cache "$@"
+EOF
+    chmod 755 ${INSTALL}/usr/bin/ldconfig
+  fi
 }
 
 configure_init() {

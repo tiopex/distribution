@@ -119,16 +119,12 @@ install_steam_client_arm64() {
   mkdir -p "${STEAM_DOT}"
   ln -sfn "${STEAM}" "${STEAM_DOT}/steam" || die "Failed to symlink STEAM_DOT/steam."
   ln -sfn "${STEAM}/linuxarm64" "${STEAM_DOT}/sdkarm64" || die "Failed to symlink STEAM_DOT/sdkarm64."
-
   mkdir -p "${STEAM}/compatibilitytools.d/"
-  ln -sfn "${PROTON_DIR}/" "${STEAM}/compatibilitytools.d/Proton11ARM" || die "Failed to symlink Proton11ARM."
-  cp -f "/usr/share/steam/compatibilitytool.vdf" "${STEAM}/compatibilitytools.d/" || die "Failed to copy compatibilitytool.vdf."
 }
 
 install_bundled_proton_files() {
   log_info "Installing bundled Proton files..."
   mkdir -p "${STEAM_DOT}" "${PROTON_DIR}/"
-  cp -f "/usr/share/steam/toolmanifest.vdf" "${PROTON_DIR}/" || die "Failed to copy toolmanifest.vdf."
   cp -f "/usr/share/steam/registry.vdf" "${STEAM_DOT}" || die "Failed to copy registry.vdf."
 }
 

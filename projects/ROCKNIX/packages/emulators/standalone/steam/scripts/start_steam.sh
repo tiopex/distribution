@@ -161,9 +161,6 @@ steam_arm64_binfmt_and_proton_prep() {
   echo 0 >/proc/sys/fs/binfmt_misc/x86
   echo 0 > /proc/sys/fs/binfmt_misc/box32
   echo 0 > /proc/sys/fs/binfmt_misc/box64
-
-  mkdir -p "/storage/.local/share/Steam/steamapps/common/Proton 11.0 (ARM64)/"
-  cp -f "/usr/share/steam/toolmanifest.vdf" "/storage/.local/share/Steam/steamapps/common/Proton 11.0 (ARM64)/"
 }
 
 steam_launch_bigpicture() {
@@ -188,7 +185,7 @@ steam_launch_bigpicture() {
   fi
   unset MESA_LOADER_DRIVER_OVERRIDE
   if [ "${STEAM_FLAVOR}" = "arm64" ]; then
-    SDL_VIDEODRIVER=x11 LD_LIBRARY_PATH=/storage/.local/share/Steam/lib/aarch64-linux-gnu/ ${EMUPERF} /storage/.local/share/Steam/steamrtarm64/steam -steamdeck -exitsteam
+    LD_LIBRARY_PATH=/storage/.local/share/Steam/lib/aarch64-linux-gnu/ ${EMUPERF} gamescope -- /storage/.local/share/Steam/steamrtarm64/steam -deckard -exitsteam
     if [ "${GAMESCOPE}" = "0" ]; then
       SDL_VIDEODRIVER=x11 LD_LIBRARY_PATH=/storage/.local/share/Steam/lib/aarch64-linux-gnu/ ${EMUPERF} /storage/.local/share/Steam/steamrtarm64/steam -nofriendsui -noverifyfiles -nobootstrapupdate -skipinitialbootstrap -norepairfiles -noshaders ${game_uri:+"$game_uri"}
       exit 0
@@ -196,7 +193,7 @@ steam_launch_bigpicture() {
       systemctl stop sway
       GAMESCOPE_MODE_SAVE_FILE="${gamescope_mode_file}" GAMESCOPE_FAKE_OUTPUT_MM=508x286 env -u WAYLAND_DISPLAY LD_LIBRARY_PATH=/storage/.local/share/Steam/lib/aarch64-linux-gnu/ ${EMUPERF} \
         gamescope $PREFER_OUTPUT -W "$W" -H "$H" -r "$REFRESH_HZ" --xwayland-count 2 --mangoapp --backend drm --force-orientation "${force_orientation}" -e -- \
-        /storage/.local/share/Steam/steamrtarm64/steam -steamdeck -steamos3 -gamepadui -noverifyfiles -nobootstrapupdate -skipinitialbootstrap -norepairfiles -noshaders ${game_uri:+"$game_uri"}
+        /storage/.local/share/Steam/steamrtarm64/steam -deckard -steamos3 -gamepadui -noverifyfiles -nobootstrapupdate -skipinitialbootstrap -norepairfiles -noshaders ${game_uri:+"$game_uri"}
       systemctl start essway
       exit 0
     fi
