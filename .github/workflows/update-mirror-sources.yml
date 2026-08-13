@@ -69,7 +69,7 @@ jobs:
         id: find_missing
         run: |
           set -euo pipefail
-          EXISTING_FILES=$(gh release view sources --repo ${{ github.repository_owner }}/distribution-sources --json assets --jq '.assets[].name' || true)
+          EXISTING_FILES=$(gh release view sources-v2 --repo ${{ github.repository_owner }}/distribution-sources --json assets --jq '.assets[].name' || true)
           mapfile -t LOCAL_FILES < <(find collected-sources/ -type f \( -name '*.tar.gz' -o -name '*.tar.xz' -o -name '*.tgz' -o -name '*.tar.bz2' -o -name '*.deb' -o -name '*.tar.zst' \))
 
           MISSING_FILES=()
