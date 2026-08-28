@@ -117,6 +117,7 @@
 
 # Add support for containers
   CONTAINER_SUPPORT="${CONTAINER_SUPPORT:-no}"
+  CONTAINER_ENGINE="${CONTAINER_ENGINE:-podman}"
 
 # Build modules packages
   MODULES_PKG="${MODULES_PKG:-yes}"

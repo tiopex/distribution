@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Compatibility wrapper for scripts expecting a setpgid CLI.
+# Map to BusyBox setsid which is available on ROCKNIX images.
+if [ "$1" = "--foreground" ]; then
+  shift
+  exec setsid -c "$@"
+fi
+
+exec setsid "$@"
+

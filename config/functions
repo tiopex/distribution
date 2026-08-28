@@ -1171,6 +1171,7 @@ go_configure() {
 go_configure_path() {
   export GOLANG=${TOOLCHAIN}/lib/golang/bin/go
   export GOPATH=${PKG_BUILD}/.gopath
+  export GOCACHE=${ROOT}/.cache/go-build
   export GOFLAGS="-modcacherw"
 }
 

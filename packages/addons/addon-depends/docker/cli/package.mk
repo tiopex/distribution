@@ -27,10 +27,10 @@ configure_target() {
   cat >"${PKG_BUILD}/go.mod" <<EOF
 module github.com/docker/cli
 
-go 1.18
+go 1.25
 EOF
 
-  GO111MODULE=auto ${GOLANG} mod tidy -modfile 'vendor.mod' -compat 1.18
+  GO111MODULE=auto ${GOLANG} mod tidy -modfile 'vendor.mod'
   GO111MODULE=auto ${GOLANG} mod vendor -modfile vendor.mod
 }
 

@@ -26,5 +26,4 @@ fi
 
 post_makeinstall_target() {
   safe_remove ${INSTALL}/etc
-  safe_remove ${INSTALL}/usr/bin
 }

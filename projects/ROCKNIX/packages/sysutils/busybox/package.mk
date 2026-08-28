@@ -120,6 +120,10 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/bin
     [ ${TARGET_ARCH} = x86_64 ] && cp ${PKG_DIR}/scripts/getedid ${INSTALL}/usr/bin
     cp ${PKG_DIR}/scripts/dthelper ${INSTALL}/usr/bin
+    cp ${PKG_DIR}/scripts/setpgid ${INSTALL}/usr/bin
+    cp ${PKG_DIR}/scripts/tput ${INSTALL}/usr/bin
+    chmod 755 ${INSTALL}/usr/bin/setpgid
+    chmod 755 ${INSTALL}/usr/bin/tput
       ln -sf dthelper ${INSTALL}/usr/bin/dtfile
       ln -sf dthelper ${INSTALL}/usr/bin/dtflag
       ln -sf dthelper ${INSTALL}/usr/bin/dtname

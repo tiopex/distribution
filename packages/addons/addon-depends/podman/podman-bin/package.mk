@@ -32,9 +32,9 @@ make_target() {
   make BUILDTAGS="${PKG_PODMAN_BUILDTAGS}" \
        CGO_CPPFLAGS="-I$(get_install_dir gpgme)/usr/include" \
        GO="${GOLANG}" \
-       PREFIX=/storage/.kodi/addons/service.system.podman \
-       HELPER_BINARIES_DIR=/storage/.kodi/addons/service.system.podman/bin \
-       EXTRA_LDFLAGS="-X github.com/containers/image/v5/sysregistries.systemRegistriesConfPath=/storage/.kodi/userdata/addon_data/service.system.podman/podman/etc/containers/registries.conf -X github.com/containers/image/v5/sysregistries.systemRegistriesConfDirectoryPath=/storage/.kodi/userdata/addon_data/service.system.podman/podman/etc/containers/registries.conf.d -X github.com/containers/image/v5/signature.systemDefaultPolicyPath=/storage/.kodi/addons/service.system.podman/etc/containers/policy.json -extldflags=-L$(get_install_dir gpgme)/usr/lib" \
+       PREFIX=/usr \
+       HELPER_BINARIES_DIR=/usr/libexec/podman \
+       EXTRA_LDFLAGS="-X github.com/containers/image/v5/sysregistries.systemRegistriesConfPath=/etc/containers/registries.conf -X github.com/containers/image/v5/sysregistries.systemRegistriesConfDirectoryPath=/etc/containers/registries.conf.d -X github.com/containers/image/v5/signature.systemDefaultPolicyPath=/etc/containers/policy.json -extldflags=-L$(get_install_dir gpgme)/usr/lib" \
        binaries
 }
 

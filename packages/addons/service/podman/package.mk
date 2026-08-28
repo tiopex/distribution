@@ -46,3 +46,17 @@ addon() {
 post_install_addon() {
   :
 }
+
+
+post_makeinstall_target() {
+  mkdir -p ${INSTALL}/usr/bin ${INSTALL}/usr/lib
+
+  cp -P $(get_install_dir conmon)/usr/bin/conmon ${INSTALL}/usr/bin
+  cp -L $(get_install_dir gpgme)/usr/lib/libgpgme.so.45 ${INSTALL}/usr/lib
+  cp -L $(get_install_dir libseccomp)/usr/lib/libseccomp.so.2 ${INSTALL}/usr/lib
+  cp -P $(get_install_dir netavark)/netavark ${INSTALL}/usr/bin
+
+  cp -P $(get_build_dir podman-bin)/bin/podman ${INSTALL}/usr/bin
+  cp -P $(get_build_dir podman-bin)/bin/podman-remote ${INSTALL}/usr/bin
+  cp -P $(get_build_dir runc)/bin/runc ${INSTALL}/usr/bin
+}

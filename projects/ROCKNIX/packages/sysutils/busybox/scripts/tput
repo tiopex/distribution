@@ -1,0 +1,71 @@
+#!/bin/sh
+
+# Lightweight tput compatibility wrapper for minimal ROCKNIX images.
+# Supports the subset commonly used by launch scripts (setaf/sgr0).
+cmd="$1"
+arg="${2:-}"
+
+case "$cmd" in
+  setaf)
+    case "$arg" in
+      0|1|2|3|4|5|6|7)
+        printf '\033[3%sm' "$arg"
+        ;;
+      8)
+        printf '\033[90m'
+        ;;
+      9)
+        printf '\033[91m'
+        ;;
+      10)
+        printf '\033[92m'
+        ;;
+      11)
+        printf '\033[93m'
+        ;;
+      12)
+        printf '\033[94m'
+        ;;
+      13)
+        printf '\033[95m'
+        ;;
+      14)
+        printf '\033[96m'
+        ;;
+      15)
+        printf '\033[97m'
+        ;;
+      *)
+        # Unknown color index: no-op for compatibility.
+        :
+        ;;
+    esac
+    ;;
+  sgr0|reset)
+    printf '\033[0m'
+    ;;
+  bold)
+    printf '\033[1m'
+    ;;
+  smul)
+    printf '\033[4m'
+    ;;
+  rmul)
+    printf '\033[24m'
+    ;;
+  colors)
+    printf '16\n'
+    ;;
+  clear)
+    printf '\033[H\033[2J'
+    ;;
+  "")
+    ;;
+  *)
+    # Keep behavior tolerant for scripts that probe capabilities.
+    :
+    ;;
+esac
+
+exit 0
+
