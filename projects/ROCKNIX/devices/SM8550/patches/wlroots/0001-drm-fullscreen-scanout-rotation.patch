@@ -1,0 +1,223 @@
+Subject: [PATCH] drm: rotate fullscreen direct scanout buffers on SM8550
+
+Allow normal, uncropped fullscreen buffers to be scanned out on outputs
+transformed by 90 or 270 degrees. Carry a separate sampling transform with
+the output buffer and program primary-plane rotation with atomic KMS.
+
+Keep the existing GPU composition fallback when TEST_ONLY rejects the
+buffer, including unsupported modifiers, formats and DPU source sizes.
+Reject this path on legacy, libliftoff and multi-GPU backends. Reset the
+rotation when replacing the scanout buffer with a composed frame.
+
+This changes wlr_output_state: rebuild Sway and other wlroots consumers.
+Based on wlroots 0.19.3; requires the SM8550 DPU inline rotation patch.
+
+diff --git a/include/wlr/types/wlr_output.h b/include/wlr/types/wlr_output.h
+--- a/include/wlr/types/wlr_output.h
++++ b/include/wlr/types/wlr_output.h
+@@ -74,6 +74,7 @@
+ 	WLR_OUTPUT_STATE_LAYERS = 1 << 10,
+ 	WLR_OUTPUT_STATE_WAIT_TIMELINE = 1 << 11,
+ 	WLR_OUTPUT_STATE_SIGNAL_TIMELINE = 1 << 12,
++	WLR_OUTPUT_STATE_BUFFER_TRANSFORM = 1 << 13,
+ };
+ 
+ enum wlr_output_state_mode_type {
+@@ -132,6 +133,10 @@
+ 	uint64_t wait_point;
+ 	struct wlr_drm_syncobj_timeline *signal_timeline;
+ 	uint64_t signal_point;
++
++	// Sampling transform for scanout, independent of the logical output transform.
++	// Requires BUFFER and BUFFER_TRANSFORM; set_buffer resets it to normal.
++	enum wl_output_transform buffer_transform;
+ };
+ 
+ struct wlr_output_impl;
+diff --git a/include/backend/drm/drm.h b/include/backend/drm/drm.h
+--- a/include/backend/drm/drm.h
++++ b/include/backend/drm/drm.h
+@@ -18,6 +18,7 @@
+ struct wlr_drm_viewport {
+ 	struct wlr_fbox src_box;
+ 	struct wlr_box dst_box;
++	enum wl_output_transform transform;
+ };
+ 
+ struct wlr_drm_plane {
+diff --git a/types/output/state.c b/types/output/state.c
+--- a/types/output/state.c
++++ b/types/output/state.c
+@@ -78,6 +78,8 @@
+ void wlr_output_state_set_buffer(struct wlr_output_state *state,
+ 		struct wlr_buffer *buffer) {
+ 	state->committed |= WLR_OUTPUT_STATE_BUFFER;
++	state->committed &= ~WLR_OUTPUT_STATE_BUFFER_TRANSFORM;
++	state->buffer_transform = WL_OUTPUT_TRANSFORM_NORMAL;
+ 	wlr_buffer_unlock(state->buffer);
+ 	state->buffer = wlr_buffer_lock(buffer);
+ }
+@@ -141,6 +143,8 @@
+ 		WLR_OUTPUT_STATE_GAMMA_LUT |
+ 		WLR_OUTPUT_STATE_WAIT_TIMELINE |
+ 		WLR_OUTPUT_STATE_SIGNAL_TIMELINE);
++	copy.committed &= ~WLR_OUTPUT_STATE_BUFFER_TRANSFORM;
++	copy.buffer_transform = WL_OUTPUT_TRANSFORM_NORMAL;
+ 	copy.buffer = NULL;
+ 	copy.buffer_src_box = (struct wlr_fbox){0};
+ 	copy.buffer_dst_box = (struct wlr_box){0};
+@@ -154,6 +158,10 @@
+ 		wlr_output_state_set_buffer(&copy, src->buffer);
+ 		copy.buffer_src_box = src->buffer_src_box;
+ 		copy.buffer_dst_box = src->buffer_dst_box;
++		if (src->committed & WLR_OUTPUT_STATE_BUFFER_TRANSFORM) {
++			copy.committed |= WLR_OUTPUT_STATE_BUFFER_TRANSFORM;
++			copy.buffer_transform = src->buffer_transform;
++		}
+ 	}
+ 
+ 	if (src->committed & WLR_OUTPUT_STATE_DAMAGE) {
+diff --git a/types/output/output.c b/types/output/output.c
+--- a/types/output/output.c
++++ b/types/output/output.c
+@@ -8,6 +8,7 @@
+ #include <wlr/types/wlr_compositor.h>
+ #include <wlr/types/wlr_output_layer.h>
+ #include <wlr/util/log.h>
++#include <wlr/util/transform.h>
+ #include "types/wlr_output.h"
+ #include "util/env.h"
+ #include "util/global.h"
+@@ -561,6 +562,10 @@
+ 
+ static bool output_basic_test(struct wlr_output *output,
+ 		const struct wlr_output_state *state) {
++	if ((state->committed & WLR_OUTPUT_STATE_BUFFER_TRANSFORM) &&
++			!(state->committed & WLR_OUTPUT_STATE_BUFFER)) {
++		return false;
++	}
+ 	if (state->committed & WLR_OUTPUT_STATE_BUFFER) {
+ 		struct wlr_fbox src_box;
+ 		output_state_get_buffer_src_box(state, &src_box);
+@@ -912,6 +917,9 @@
+ 		output_state_get_buffer_src_box(state, &src_box);
+ 		out->width = (int)src_box.width;
+ 		out->height = (int)src_box.height;
++		if (state->committed & WLR_OUTPUT_STATE_BUFFER_TRANSFORM) {
++			wlr_output_transform_coords(state->buffer_transform, &out->width, &out->height);
++		}
+ 	} else {
+ 		out->width = state->buffer_dst_box.width;
+ 		out->height = state->buffer_dst_box.height;
+diff --git a/types/scene/wlr_scene.c b/types/scene/wlr_scene.c
+--- a/types/scene/wlr_scene.c
++++ b/types/scene/wlr_scene.c
+@@ -1925,8 +1925,21 @@
+ 		.height = default_height,
+ 	};
+ 
+-	if (buffer->transform != data->transform) {
++	bool rotate = buffer->transform != data->transform;
++	if (rotate && (buffer->transform != WL_OUTPUT_TRANSFORM_NORMAL ||
++			(data->transform != WL_OUTPUT_TRANSFORM_90 &&
++			data->transform != WL_OUTPUT_TRANSFORM_270) ||
++			buffer->opacity != 1.0f || (!wlr_fbox_empty(&buffer->src_box) &&
++			!wlr_fbox_equal(&buffer->src_box, &default_box)))) {
+ 		return SCANOUT_INELIGIBLE;
++	}
++	if (rotate) {
++		int width, height;
++		scene_node_get_size(node, &width, &height);
++		if (entry->x != scene_output->x || entry->y != scene_output->y ||
++				width != data->logical.width || height != data->logical.height) {
++			return SCANOUT_INELIGIBLE;
++		}
+ 	}
+ 
+ 	// We want to ensure optimal buffer selection, but as direct-scanout can be enabled and disabled
+@@ -1967,6 +1980,12 @@
+ 	}
+ 
+ 	wlr_output_state_set_buffer(&pending, wlr_buffer);
++	if (rotate) {
++		pending.committed |= WLR_OUTPUT_STATE_BUFFER_TRANSFORM;
++		pending.buffer_transform = data->transform;
++		// Scene damage is in output coordinates, not in the unrotated buffer.
++		pending.committed &= ~WLR_OUTPUT_STATE_DAMAGE;
++	}
+ 	if (buffer->wait_timeline != NULL) {
+ 		wlr_output_state_set_wait_timeline(&pending, buffer->wait_timeline, buffer->wait_point);
+ 	}
+diff --git a/backend/drm/drm.c b/backend/drm/drm.c
+--- a/backend/drm/drm.c
++++ b/backend/drm/drm.c
+@@ -44,7 +44,8 @@
+ 	WLR_OUTPUT_STATE_SIGNAL_TIMELINE;
+ 
+ static const uint32_t SUPPORTED_OUTPUT_STATE =
+-	WLR_OUTPUT_STATE_BACKEND_OPTIONAL | COMMIT_OUTPUT_STATE;
++	WLR_OUTPUT_STATE_BACKEND_OPTIONAL | COMMIT_OUTPUT_STATE |
++	WLR_OUTPUT_STATE_BUFFER_TRANSFORM;
+ 
+ bool check_drm_features(struct wlr_drm_backend *drm) {
+ 	if (drmGetCap(drm->fd, DRM_CAP_CURSOR_WIDTH, &drm->cursor_width)) {
+@@ -773,6 +774,10 @@
+ 
+ 	output_state_get_buffer_src_box(state->base, &state->primary_viewport.src_box);
+ 	output_state_get_buffer_dst_box(state->base, &state->primary_viewport.dst_box);
++	state->primary_viewport.transform = WL_OUTPUT_TRANSFORM_NORMAL;
++	if (state->base->committed & WLR_OUTPUT_STATE_BUFFER_TRANSFORM) {
++		state->primary_viewport.transform = state->base->buffer_transform;
++	}
+ 
+ 	return true;
+ }
+@@ -822,6 +827,19 @@
+ 		wlr_log(WLR_DEBUG, "Unsupported output state fields: 0x%"PRIx32,
+ 			unsupported);
+ 		return false;
++	}
++
++	if (state->committed & WLR_OUTPUT_STATE_BUFFER_TRANSFORM) {
++		if (conn->backend->iface != &atomic_iface ||
++				conn->backend->mgpu_renderer.wlr_rend ||
++				!conn->crtc || !conn->crtc->primary->props.rotation) {
++			return false;
++		}
++		if (state->buffer_transform != WL_OUTPUT_TRANSFORM_NORMAL &&
++				state->buffer_transform != WL_OUTPUT_TRANSFORM_90 &&
++				state->buffer_transform != WL_OUTPUT_TRANSFORM_270) {
++			return false;
++		}
+ 	}
+ 
+ 	if ((state->committed & WLR_OUTPUT_STATE_ENABLED) && state->enabled &&
+diff --git a/backend/drm/atomic.c b/backend/drm/atomic.c
+--- a/backend/drm/atomic.c
++++ b/backend/drm/atomic.c
+@@ -270,7 +270,8 @@
+ 	}
+ 
+ 	uint32_t fb_damage_clips = 0;
+-	if ((state->base->committed & WLR_OUTPUT_STATE_DAMAGE) &&
++	if (state->primary_viewport.transform == WL_OUTPUT_TRANSFORM_NORMAL &&
++			(state->base->committed & WLR_OUTPUT_STATE_DAMAGE) &&
+ 			crtc->primary->props.fb_damage_clips != 0) {
+ 		create_fb_damage_clips_blob(drm, state->primary_fb->wlr_buf->width,
+ 			state->primary_fb->wlr_buf->height, &state->base->damage, &fb_damage_clips);
+@@ -440,6 +441,15 @@
+ 
+ 		set_plane_props(atom, drm, crtc->primary, state->primary_fb, crtc->id,
+ 			&state->primary_viewport.dst_box, &state->primary_viewport.src_box);
++		if (crtc->primary->props.rotation != 0) {
++			uint64_t rotation = DRM_MODE_ROTATE_0;
++			if (state->primary_viewport.transform == WL_OUTPUT_TRANSFORM_90) {
++				rotation = DRM_MODE_ROTATE_90;
++			} else if (state->primary_viewport.transform == WL_OUTPUT_TRANSFORM_270) {
++				rotation = DRM_MODE_ROTATE_270;
++			}
++			atomic_add(atom, crtc->primary->id, crtc->primary->props.rotation, rotation);
++		}
+ 		if (crtc->primary->props.fb_damage_clips != 0) {
+ 			atomic_add(atom, crtc->primary->id,
+ 				crtc->primary->props.fb_damage_clips, state->fb_damage_clips);
