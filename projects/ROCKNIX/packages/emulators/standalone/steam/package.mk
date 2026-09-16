@@ -31,8 +31,15 @@ makeinstall_target() {
     cp -a ${PKG_DIR}/resources/registry.vdf ${INSTALL}/usr/share/steam
 
   mkdir -p ${INSTALL}/usr/bin/steamos-polkit-helpers
-    install -m 0755 ${PKG_DIR}/scripts/steamos-polkit-helpers/steamos-set-timezone ${INSTALL}/usr/bin/steamos-polkit-helpers/steamos-set-timezone
-
+  install -m 0755 ${PKG_DIR}/scripts/steam-pv-entry.sh \
+    ${INSTALL}/usr/bin/steam-pv-entry.sh
+  install -m 0755 ${PKG_DIR}/scripts/steam_game_launch_shell.sh \
+    ${INSTALL}/usr/bin/steam_game_launch_shell.sh
+  install -m 0755 ${PKG_DIR}/scripts/steamos-session-select \
+    ${INSTALL}/usr/bin/steamos-session-select
+  install -m 0755 ${PKG_DIR}/scripts/steamos-polkit-helpers/steamos-set-timezone \
+    ${INSTALL}/usr/bin/steamos-polkit-helpers/steamos-set-timezone
+  cp -rf ${PKG_DIR}/resources/registry.vdf ${INSTALL}/usr/share/steam
   mkdir -p ${INSTALL}/usr/lib/sysctl.d
     cp -a ${PKG_DIR}/config/50-max-map-count.conf ${INSTALL}/usr/lib/sysctl.d
 }

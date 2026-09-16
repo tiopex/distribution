@@ -173,6 +173,32 @@ steam_arm64_binfmt_and_proton_prep() {
   rm "/storage/.local/share/Steam/compatibilitytools.d/compatibilitytool.vdf"
 }
 
+steam_arm64_seed_host_tool() {
+  local dst="$1"
+  local src="$2"
+  [ -x "${dst}" ] || return 1
+  [ -e "${src}" ] || cp -p "${dst}" "${src}" || return 1
+  chmod +x "${src}" || return 1
+  grep -q " ${dst} " /proc/self/mountinfo || mount --bind "${src}" "${dst}"
+}
+
+steam_arm64_install_host_tools() {
+  local steam="$1"
+  local steamrt="$2"
+  local bindir="${steam}/host-bin"
+
+  mkdir -p "${bindir}" || return 1
+  steam_arm64_seed_host_tool /usr/bin/steamos-session-select \
+    "${bindir}/steamos-session-select" || return 1
+  steam_arm64_seed_host_tool /usr/bin/steamos-polkit-helpers/steamos-set-timezone \
+    "${bindir}/steamos-set-timezone" || return 1
+
+  if [ -f /usr/bin/steam-pv-entry.sh ]; then
+    cp -f /usr/bin/steam-pv-entry.sh "${bindir}/steam-pv-entry.sh" || return 1
+  fi
+  chmod +x "${bindir}/steam-pv-entry.sh" || return 1
+}
+
 steam_launch_bigpicture() {
   local game_uri=""
   local force_orientation="normal"
@@ -209,7 +235,22 @@ steam_launch_bigpicture() {
   touch "$gamescope_mode_file"
   unset MESA_LOADER_DRIVER_OVERRIDE
   if [ "${STEAM_FLAVOR}" = "arm64" ]; then
+    local steam="/storage/.local/share/Steam"
+    local steamrt="${steam}/steam-runtime-steamrt-arm64"
+    if [ ! -x "${steamrt}/run" ]; then
+      echo "Steam runtime wrapper not found: ${steamrt}/run" >&2
+      return 1
+    fi
+    ln -sf /usr/lib/pressure-vessel/overrides/lib/aarch64-linux-gnu/libGLX.so.0 \
+      "${steam}/steamrtarm64/libGLX.so" || return 1
+    steam_arm64_install_host_tools "${steam}" "${steamrt}" || return 1
     export STEAM_COMPAT_GRAPHICS_PROVIDER=//storage/.local/share/fex-emu/RootFS/ArchLinux/graphics_provider.json
+    export STEAM_GAME_LAUNCH_SHELL=/run/host/usr/bin/steam_game_launch_shell.sh
+    mkdir -p /storage/.config/gamescope
+    : >/storage/.config/gamescope/limiter
+    printf 'no_display' >/storage/.config/gamescope/mangoapp.conf
+    export MANGOHUD_CONFIGFILE=/storage/.config/gamescope/mangoapp.conf
+    export GAMESCOPE_LIMITER_FILE=/storage/.config/gamescope/limiter
     steam_exit_code_file=$(mktemp /tmp/steam-exit-code.XXXXXX)
     systemctl stop sway
     steam_touch_calibration_begin "${force_orientation}"
@@ -217,7 +258,7 @@ steam_launch_bigpicture() {
     while true; do
       rm -f "${steam_exit_code_file}"
       GAMESCOPE_MODE_SAVE_FILE="${gamescope_mode_file}" GAMESCOPE_FAKE_OUTPUT_MM=508x286 \
-      env -u WAYLAND_DISPLAY LD_LIBRARY_PATH=/storage/.local/share/Steam/lib/aarch64-linux-gnu/ ${EMUPERF} \
+      env -u WAYLAND_DISPLAY ${EMUPERF} \
       gamescope $PREFER_OUTPUT -W "$W" -H "$H" -r "$REFRESH_HZ" --xwayland-count 2 --mangoapp --backend drm --force-orientation "${force_orientation}" ${rotate_clamp} -e -- \
       /bin/bash -c '
         exit_file="$1"
@@ -225,7 +266,17 @@ steam_launch_bigpicture() {
         "$@"
         printf "%s\n" "$?" >"${exit_file}"
       ' _ "${steam_exit_code_file}" \
-      /storage/.local/share/Steam/steamrtarm64/steam -deckard -steamos3 -gamepadui -noshaders ${game_uri:+"$game_uri"}
+      env -u LD_LIBRARY_PATH \
+      dbus-run-session -- \
+      "${steamrt}/pressure-vessel/bin/steam-runtime-launcher-service" \
+        --alongside-steam \
+        --bus-name=com.steampowered.PressureVessel.ROCKNIXHost \
+        -- \
+      "${steamrt}/run" --for-steam-client -- \
+      env PATH="${steam}/host-bin:/usr/bin:/bin:/usr/sbin" \
+          SYSTEM_PATH="${steam}/host-bin:/usr/bin:/bin:/usr/sbin" \
+      "${steam}/host-bin/steam-pv-entry.sh" \
+      "${steam}/steamrtarm64/steam" -deckard -steamos3 -gamepadui -noshaders ${game_uri:+"$game_uri"}
       gamescope_exit_code=$?
       if [ -f "${steam_exit_code_file}" ]; then
         steam_exit_code=$(cat "${steam_exit_code_file}")

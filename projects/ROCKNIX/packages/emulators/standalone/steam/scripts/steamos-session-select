@@ -3,5 +3,18 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026-present ROCKNIX (https://github.com/ROCKNIX)
 
-killall gamescope steam FEX
-killall -9 gamescope steam FEX
+if [ "${container:-}" = "pressure-vessel" ]; then
+  exec /storage/.local/share/Steam/steam-runtime-steamrt-arm64/pressure-vessel/bin/steam-runtime-launch-client \
+    --bus-name=com.steampowered.PressureVessel.ROCKNIXHost \
+    -- /usr/bin/steamos-session-select "$@"
+fi
+
+case "${1:-}" in
+  plasma|desktop|es|logout)
+    killall gamescope steam FEX 2>/dev/null
+    killall -9 gamescope steam FEX 2>/dev/null
+    ;;
+  *)
+    echo gamescope
+    ;;
+esac

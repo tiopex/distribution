@@ -2,6 +2,19 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Copyright (C) 2026-present ROCKNIX (https://github.com/ROCKNIX)
 
+if [ "${container:-}" = "pressure-vessel" ]; then
+  export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/pressure-vessel/bus}"
+  export DBUS_SYSTEM_BUS_ADDRESS="${DBUS_SYSTEM_BUS_ADDRESS:-unix:path=/run/dbus/system_bus_socket}"
+  export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/0}"
+  export DISPLAY="${DISPLAY:-:0}"
+  unset LD_LIBRARY_PATH
+  exec /storage/.local/share/Steam/steam-runtime-steamrt-arm64/pressure-vessel/bin/steam-runtime-launch-client \
+    --bus-name=com.steampowered.PressureVessel.ROCKNIXHost \
+    --unset-env=container \
+    --unset-env=LD_LIBRARY_PATH \
+    -- /usr/bin/steamos-polkit-helpers/steamos-set-timezone "$@"
+fi
+
 set -e
 
 . /etc/profile
