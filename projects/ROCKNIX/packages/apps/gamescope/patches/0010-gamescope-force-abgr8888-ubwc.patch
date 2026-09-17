@@ -1,0 +1,105 @@
+Subject: [PATCH] gamescope: allow forcing ABGR8888 UBWC composition buffers
+
+GAMESCOPE_FORCE_ABGR8888_UBWC=1 selects ABGR8888 for composition and
+restricts its scanout allocations to QCOM_COMPRESSED. Fail explicitly
+when Vulkan cannot export this combination with the required image usage.
+This allows testing DPU inline rotation without changing kernel limits.
+
+diff --git a/src/rendervulkan.hpp b/src/rendervulkan.hpp
+--- a/src/rendervulkan.hpp
++++ b/src/rendervulkan.hpp
+@@ -19,6 +19,8 @@
+ #include "backend.h"
+ 
+ #include "shaders/descriptor_set_constants.h"
++
++extern bool g_bForceABGR8888UBWC;
+ 
+ class CVulkanCmdBuffer;
+ 
+diff --git a/src/rendervulkan.cpp b/src/rendervulkan.cpp
+--- a/src/rendervulkan.cpp
++++ b/src/rendervulkan.cpp
+@@ -139,6 +139,8 @@
+ }
+ 
+ static LogScope vk_log("vulkan");
++
++bool g_bForceABGR8888UBWC = false;
+ 
+ static void vk_errorf(VkResult result, const char *fmt, ...) {
+ 	static char buf[1024];
+@@ -2163,6 +2165,13 @@
+ 		}
+ 	}
+ 
++	const bool forceUBWC = g_bForceABGR8888UBWC && flags.bFlippable && !pDMA && drmFormat == DRM_FORMAT_ABGR8888;
++	if ( forceUBWC && ( !GetBackend()->UsesModifiers() || !g_device.supportsModifiers() || flags.bLinear || flags.bMappable ) )
++	{
++		vk_log.errorf( "ABGR8888 UBWC composition requires modifier support and a non-linear, unmapped image" );
++		return false;
++	}
++
+ 	std::vector<uint64_t> modifiers = {};
+ 	// TODO(JoshA): Move this code to backend for making flippable image.
+ 	if ( GetBackend()->UsesModifiers() && flags.bFlippable && g_device.supportsModifiers() && !pDMA )
+@@ -2189,6 +2198,8 @@
+ 		for ( size_t i = 0; i < numPossibleModifiers; i++ )
+ 		{
+ 			uint64_t modifier = possibleModifiers[i];
++			if ( forceUBWC && modifier != DRM_FORMAT_MOD_QCOM_COMPRESSED )
++				continue;
+ 
+ 			VkExternalImageFormatProperties externalFormatProps = {
+ 				.sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES,
+@@ -2207,6 +2218,11 @@
+ 			modifiers.push_back( modifier );
+ 		}
+ 
++		if ( forceUBWC && modifiers.empty() )
++		{
++			vk_log.errorf( "ABGR8888 + QCOM_COMPRESSED unavailable for composition image usage 0x%x", unsigned( imageInfo.usage ) );
++			return false;
++		}
+ 		assert( modifiers.size() > 0 );
+ 
+ 		modifierListInfo = {
+@@ -2442,6 +2458,15 @@
+ 				return false;
+ 			}
+ 			dmabuf.modifier = imgModifierProps.drmFormatModifier;
++			if ( forceUBWC )
++			{
++				if ( dmabuf.modifier != DRM_FORMAT_MOD_QCOM_COMPRESSED )
++				{
++					vk_log.errorf( "Unexpected modifier for ABGR8888 UBWC composition buffer" );
++					return false;
++				}
++				vk_log.infof( "Allocated %ux%u ABGR8888 + QCOM_COMPRESSED composition buffer", width, height );
++			}
+ 
+ 			assert( DRMModifierProps.count( m_format ) > 0);
+ 			assert( DRMModifierProps[ m_format ].count( dmabuf.modifier ) > 0);
+diff --git a/src/Backends/DRMBackend.cpp b/src/Backends/DRMBackend.cpp
+--- a/src/Backends/DRMBackend.cpp
++++ b/src/Backends/DRMBackend.cpp
+@@ -1459,6 +1459,19 @@
+ 		}
+ 	}
+ 
++	g_bForceABGR8888UBWC = env_to_bool( getenv( "GAMESCOPE_FORCE_ABGR8888_UBWC" ) );
++	if ( g_bForceABGR8888UBWC )
++	{
++		g_nDRMFormat = pick_plane_format( &drm->primary_formats, DRM_FORMAT_ABGR8888, DRM_FORMAT_ABGR8888 );
++		g_nDRMFormatOverlay = pick_plane_format( &drm->formats, DRM_FORMAT_ABGR8888, DRM_FORMAT_ABGR8888 );
++		if ( g_nDRMFormat == DRM_FORMAT_INVALID || g_nDRMFormatOverlay == DRM_FORMAT_INVALID )
++		{
++			drm_log.errorf( "GAMESCOPE_FORCE_ABGR8888_UBWC: ABGR8888 unavailable for composition" );
++			return false;
++		}
++		drm_log.infof( "Forcing ABGR8888 + QCOM_COMPRESSED composition buffers" );
++	}
++
+ 	// Create a pipe to wake the flip handler poll for immediate exit.
+ 	// Closing the write end will cause the read end to get POLLHUP.
+ 	if ( pipe2( g_page_flip_pipe_fds, O_CLOEXEC ) != 0 ) {
