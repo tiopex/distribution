@@ -22,6 +22,7 @@ jobs:
       MODULES_PKG: no
       JAVA_HOME: /usr
       AUTOREMOVE: "yes"
+      AUTOREMOVE_BLOCK: "atf h700-suspend-stub"
       PROJECT: ${{ inputs.PROJECT }}
       DEVICE: ${{ inputs.DEVICE }}
       ARCH: aarch64
