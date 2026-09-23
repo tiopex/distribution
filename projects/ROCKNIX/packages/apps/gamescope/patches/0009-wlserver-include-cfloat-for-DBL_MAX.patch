@@ -1,0 +1,13 @@
+Subject: [PATCH] wlserver: include cfloat for DBL_MAX
+
+diff --git a/src/wlserver.cpp b/src/wlserver.cpp
+--- a/src/wlserver.cpp
++++ b/src/wlserver.cpp
+@@ -79,6 +79,7 @@
+ #include <algorithm>
++#include <cfloat>
+ #include <list>
+ #include <set>
+ 
+ static LogScope wl_log("wlserver");
+ 
